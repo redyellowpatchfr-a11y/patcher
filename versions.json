@@ -25,8 +25,8 @@
       },
       "patch_linux": {
         "filename": "ry-fr-linux-v2.1.4.xdelta",
-        "sha256": "dea3eb9cdaf59296c171b9ce8579eb2733666e936dc29bbd59f7642bde84eed6",
-        "size": 2137914
+        "sha256": "38d1ac72a3a6fe63b004540096acf457ac660852d4e0e00d9ac226f13259b735",
+        "size": 30573582
       }
     }
   }
