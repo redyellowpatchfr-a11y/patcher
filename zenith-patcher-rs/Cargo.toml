@@ -1,0 +1,24 @@
+[package]
+name = "zenith-patcher-rs"
+version = "1.0.0"
+edition = "2021"
+authors = ["Zénith Team (Cronos, Anthan)"]
+description = "Patcher de traduction française pour Undertale Yellow et Red & Yellow"
+
+[dependencies]
+eframe = { version = "0.28", default-features = false, features = ["glow", "persistence", "default_fonts"] }
+minreq = { version = "2.11", features = ["https-rustls"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rfd = "0.14"
+sha2 = "0.10"
+image = { version = "0.25", default-features = false, features = ["png", "webp"] }
+tempfile = "3.8"
+webbrowser = "1.0"
+
+[profile.release]
+opt-level = "z"     # Optimize for size
+lto = true          # Enable Link Time Optimization
+codegen-units = 1   # Reduce parallel code generation units to increase optimization
+panic = "abort"     # Remove panic unwinding code
+strip = true        # Strip symbols from the binary
