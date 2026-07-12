@@ -1,0 +1,11 @@
+# Fichiers à ne pas committer dans le repo
+# Les xdelta sont dans les GitHub Releases (trop gros pour git)
+
+# Fichiers temporaires
+*.tmp
+*.backup
+.verify_*.win
+
+# OS
+.DS_Store
+Thumbs.db

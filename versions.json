@@ -1,0 +1,26 @@
+{
+  "projects": {
+    "uty-fr": {
+      "version": "0.5.0",
+      "patch_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/uty-fr-v0.5.0/uty-fr-v0.5.0.xdelta",
+      "date": "2026-07-12",
+      "changelog": "Première version stable du patch de traduction française d'Undertale Yellow par Arvix.",
+      "patch": {
+        "filename": "uty-fr-v0.5.0.xdelta",
+        "sha256": "c227defe6d78994e3f1b9323a0c462a91906049bbf381930ca6964eeda23dfa3",
+        "size": 56653766
+      }
+    },
+    "ry-fr": {
+      "version": "2.2.0",
+      "patch_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-v2.2.0.xdelta",
+      "date": "2026-07-12",
+      "changelog": "Patch complet vanilla Undertale → Red & Yellow FR en une passe. Inclut le mod et la traduction française v2.2.",
+      "patch": {
+        "filename": "ry-fr-v2.2.0.xdelta",
+        "sha256": "a606f3445a5a0100371d55d0ff66c2f2e757691948337097834e26e0af3b03a3",
+        "size": 38093797
+      }
+    }
+  }
+}
