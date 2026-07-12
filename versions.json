@@ -20,8 +20,8 @@
       "changelog": "Patch complet vanilla Undertale → Red & Yellow FR en une passe. Inclut le mod et la traduction française v2.2.",
       "patch": {
         "filename": "ry-fr-v2.2.0.xdelta",
-        "sha256": "964e41db03e78ebf02a506b1590fe4b7d3131c804c886ba96656967e8ff88980",
-        "size": 12637819
+        "sha256": "e1b174f4922a2418203fbc1acec676a5eff1992474f6c46cf8a85c1e1d970652",
+        "size": 38110130
       },
       "patch_linux": {
         "filename": "ry-fr-linux-v2.1.4.xdelta",
