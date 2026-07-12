@@ -15,12 +15,18 @@
     "ry-fr": {
       "version": "2.2.0",
       "patch_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-v2.2.0.xdelta",
+      "patch_linux_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-linux-v2.1.4.xdelta",
       "date": "2026-07-12",
       "changelog": "Patch complet vanilla Undertale → Red & Yellow FR en une passe. Inclut le mod et la traduction française v2.2.",
       "patch": {
         "filename": "ry-fr-v2.2.0.xdelta",
         "sha256": "a606f3445a5a0100371d55d0ff66c2f2e757691948337097834e26e0af3b03a3",
         "size": 38093797
+      },
+      "patch_linux": {
+        "filename": "ry-fr-linux-v2.1.4.xdelta",
+        "sha256": "5356010050beadc2d7adf3a640e7f65cf4f569215e238827f8eeff3214a217a4",
+        "size": 32402492
       }
     }
   }
