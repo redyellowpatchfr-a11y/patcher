@@ -3,6 +3,7 @@
     "uty-fr": {
       "version": "0.5.0",
       "patch_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/uty-fr-v0.5.0/uty-fr-v0.5.0.xdelta",
+      "repack_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/uty-fr-v0.5.0/Undertale.Yellow.v1_1PatchFr.zip",
       "date": "2026-07-12",
       "changelog": "Première version stable du patch de traduction française d'Undertale Yellow par Arvix.",
       "patch": {
