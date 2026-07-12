@@ -1,0 +1,76 @@
+name: Release Patcher
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build - ${{ matrix.platform.os-name }}
+    runs-on: ${{ matrix.platform.runs-on }}
+    strategy:
+      matrix:
+        platform:
+          - os-name: Linux
+            runs-on: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            bin-name: zenith-patcher-linux
+          - os-name: Windows
+            runs-on: windows-latest
+            target: x86_64-pc-windows-msvc
+            bin-name: zenith-patcher-windows.exe
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Install dependencies (Linux)
+        if: matrix.platform.runs-on == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libx11-dev libxft-dev libxinerama-dev libxcursor-dev libxrandr-dev libxi-dev libasound2-dev libpulse-dev
+
+      - name: Build binary
+        working-directory: zenith-patcher-rs
+        run: cargo build --release --target ${{ matrix.platform.target }}
+
+      - name: Rename binary
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform.runs-on }}" = "windows-latest" ]; then
+            mv zenith-patcher-rs/target/${{ matrix.platform.target }}/release/zenith-patcher-rs.exe ${{ matrix.platform.bin-name }}
+          else
+            mv zenith-patcher-rs/target/${{ matrix.platform.target }}/release/zenith-patcher-rs ${{ matrix.platform.bin-name }}
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform.bin-name }}
+          path: ${{ matrix.platform.bin-name }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            zenith-patcher-linux/zenith-patcher-linux
+            zenith-patcher-windows.exe/zenith-patcher-windows.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
