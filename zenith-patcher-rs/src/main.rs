@@ -22,9 +22,9 @@ const XDELTA_WIN: &[u8] = include_bytes!("../bin/win/xdelta3.exe");
 // Chargement des images à la compilation
 const JACKET_UTY: &[u8] = include_bytes!("../assets/Undertale_Yellow.webp");
 const JACKET_RY: &[u8] = include_bytes!("../assets/undertale-red-yellow.webp");
-const BG_IMAGE_BYTES: &[u8] = include_bytes!("../../zenith-site/assets/images/banniere_UTY.webp");
+const BG_IMAGE_BYTES: &[u8] = include_bytes!("../assets/banniere_UTY.webp");
 const DISCORD_ICON_BYTES: &[u8] = include_bytes!("../assets/discord.webp");
-const APP_ICON_BYTES: &[u8] = include_bytes!("../../zenith-site/assets/images/coeur.webp");
+const APP_ICON_BYTES: &[u8] = include_bytes!("../assets/coeur.webp");
 
 // URL du versions.json sur GitHub (source de vérité pour les mises à jour)
 const VERSIONS_URL: &str = "https://raw.githubusercontent.com/redyellowpatchfr-a11y/patcher/main/versions.json";
@@ -193,7 +193,7 @@ fn setup_retro_style(ctx: &egui::Context) {
     let mut fonts = egui::FontDefinitions::default();
     fonts.font_data.insert(
         "DeterminationMono".to_owned(),
-        egui::FontData::from_static(include_bytes!("../../zenith-site/assets/fonts/DeterminationMono.ttf")),
+        egui::FontData::from_static(include_bytes!("../assets/DeterminationMono.ttf")),
     );
     
     fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap()
