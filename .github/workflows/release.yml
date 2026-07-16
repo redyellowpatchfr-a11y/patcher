@@ -16,7 +16,7 @@ jobs:
       matrix:
         platform:
           - os-name: Linux
-            runs-on: ubuntu-latest
+            runs-on: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
             bin-name: zenith-patcher-linux
           - os-name: Windows
