@@ -41,6 +41,8 @@ jobs:
 
       - name: Build binary
         working-directory: zenith-patcher-rs
+        env:
+          RUSTFLAGS: "-C target-feature=+crt-static"
         run: cargo build --release --target ${{ matrix.platform.target }}
 
       - name: Rename binary
