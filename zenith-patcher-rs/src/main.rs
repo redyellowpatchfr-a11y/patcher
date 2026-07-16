@@ -20,11 +20,11 @@ const XDELTA_LINUX: &[u8] = include_bytes!("../bin/linux/xdelta3");
 const XDELTA_WIN: &[u8] = include_bytes!("../bin/win/xdelta3.exe");
 
 // Chargement des images à la compilation
-const JACKET_UTY: &[u8] = include_bytes!("../assets/Undertale_Yellow.png");
+const JACKET_UTY: &[u8] = include_bytes!("../assets/Undertale_Yellow.webp");
 const JACKET_RY: &[u8] = include_bytes!("../assets/undertale-red-yellow.webp");
-const BG_IMAGE_BYTES: &[u8] = include_bytes!("../../zenith-site/assets/images/banniere_UTY.png");
-const DISCORD_ICON_BYTES: &[u8] = include_bytes!("../assets/discord.png");
-const APP_ICON_BYTES: &[u8] = include_bytes!("../../zenith-site/assets/images/coeur.png");
+const BG_IMAGE_BYTES: &[u8] = include_bytes!("../../zenith-site/assets/images/banniere_UTY.webp");
+const DISCORD_ICON_BYTES: &[u8] = include_bytes!("../assets/discord.webp");
+const APP_ICON_BYTES: &[u8] = include_bytes!("../../zenith-site/assets/images/coeur.webp");
 
 // URL du versions.json sur GitHub (source de vérité pour les mises à jour)
 const VERSIONS_URL: &str = "https://raw.githubusercontent.com/redyellowpatchfr-a11y/patcher/main/versions.json";
@@ -133,6 +133,7 @@ struct PatcherApp {
     tex_ry: Option<egui::TextureHandle>,
     tex_bg: Option<egui::TextureHandle>,
     tex_discord: Option<egui::TextureHandle>,
+    tex_heart: Option<egui::TextureHandle>,
 }
 
 impl PatcherApp {
@@ -146,8 +147,9 @@ impl PatcherApp {
         let tex_ry = load_image_bytes(&cc.egui_ctx, "jacket_ry", JACKET_RY);
         let tex_bg = load_image_bytes(&cc.egui_ctx, "bg_image", BG_IMAGE_BYTES);
         let tex_discord = load_image_bytes(&cc.egui_ctx, "discord_icon", DISCORD_ICON_BYTES);
+        let tex_heart = load_image_bytes(&cc.egui_ctx, "app_icon", APP_ICON_BYTES);
 
-        Self { state, tex_uty, tex_ry, tex_bg, tex_discord }
+        Self { state, tex_uty, tex_ry, tex_bg, tex_discord, tex_heart }
     }
 }
 
@@ -160,13 +162,14 @@ fn setup_retro_style(ctx: &egui::Context) {
     style.visuals.window_fill = egui::Color32::BLACK;
     style.visuals.panel_fill = egui::Color32::BLACK;
     
-    style.visuals.window_rounding = 0.0.into();
-    style.visuals.menu_rounding = 0.0.into();
-    style.visuals.widgets.noninteractive.rounding = 0.0.into();
-    style.visuals.widgets.inactive.rounding = 0.0.into();
-    style.visuals.widgets.hovered.rounding = 0.0.into();
-    style.visuals.widgets.active.rounding = 0.0.into();
-    style.visuals.widgets.open.rounding = 0.0.into();
+    style.visuals.window_rounding = 4.0.into();
+    style.visuals.menu_rounding = 4.0.into();
+    style.visuals.widgets.noninteractive.rounding = 4.0.into();
+    style.visuals.widgets.inactive.rounding = 4.0.into();
+    style.visuals.widgets.hovered.rounding = 4.0.into();
+    style.visuals.widgets.active.rounding = 4.0.into();
+    style.visuals.widgets.open.rounding = 4.0.into();
+    style.spacing.button_padding = egui::vec2(12.0, 6.0);
     
     style.visuals.widgets.noninteractive.bg_fill = egui::Color32::from_black_alpha(200);
     style.visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(2.0, egui::Color32::WHITE);
@@ -236,7 +239,65 @@ impl eframe::App for PatcherApp {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
 
-        let panel_frame = egui::Frame::none().fill(egui::Color32::from_rgb(18, 10, 18));
+        // --- 1. Barre de titre personnalisée (Frameless Window) ---
+        let title_bar_frame = egui::Frame::none()
+            .fill(egui::Color32::from_rgb(10, 5, 15))
+            .inner_margin(egui::Margin::symmetric(15.0, 10.0));
+            
+        egui::TopBottomPanel::top("title_bar")
+            .frame(title_bar_frame)
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    // Cœur rouge d'Undertale
+                    if let Some(heart_tex) = &self.tex_heart {
+                        ui.image((heart_tex.id(), egui::vec2(14.0, 14.0)));
+                    } else {
+                        ui.label(egui::RichText::new("❤").color(egui::Color32::from_rgb(255, 51, 51)).size(14.0).strong());
+                    }
+                    ui.label(egui::RichText::new("ZÉNITH PATCHER").color(egui::Color32::from_rgb(255, 204, 0)).strong().size(12.0));
+                    
+                    let is_maximized = ctx.input(|i| i.viewport().maximized.unwrap_or(false));
+                    
+                    // Zone de drag de la fenêtre (alloue tout l'espace disponible moins 90px pour les boutons)
+                    let drag_width = (ui.available_width() - 90.0).max(10.0);
+                    let drag_space = egui::vec2(drag_width, ui.available_height());
+                    let (_rect, response) = ui.allocate_at_least(drag_space, egui::Sense::drag());
+                    if response.dragged() {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::StartDrag);
+                    }
+
+                    // Boutons de contrôle (Fermer, Maximiser/Restaurer, Réduire) à droite
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let btn_close = ui.add(egui::Button::new(
+                            egui::RichText::new("✕").size(11.0).color(egui::Color32::WHITE)
+                        ).frame(false));
+                        if btn_close.clicked() {
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+
+                        ui.add_space(8.0);
+
+                        let btn_max = ui.add(egui::Button::new(
+                            egui::RichText::new(if is_maximized { "🗗" } else { "🗖" }).size(11.0).color(egui::Color32::WHITE)
+                        ).frame(false));
+                        if btn_max.clicked() {
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Maximized(!is_maximized));
+                        }
+
+                        ui.add_space(8.0);
+
+                        let btn_min = ui.add(egui::Button::new(
+                            egui::RichText::new("—").size(11.0).color(egui::Color32::WHITE)
+                        ).frame(false));
+                        if btn_min.clicked() {
+                            ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+                        }
+                    });
+                });
+            });
+
+        // --- 2. Panel Central ---
+        let panel_frame = egui::Frame::none().fill(egui::Color32::from_rgb(20, 12, 28));
         egui::CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
             if let Some(bg_tex) = &self.tex_bg {
                 let rect = ui.max_rect();
@@ -244,75 +305,85 @@ impl eframe::App for PatcherApp {
                     bg_tex.id(),
                     rect,
                     egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                    egui::Color32::from_white_alpha(55)
+                    egui::Color32::from_white_alpha(30) // Transparence d'arrière-plan
                 );
             }
 
             egui::Frame::none()
-                .inner_margin(egui::Margin::symmetric(40.0, 20.0))
+                .inner_margin(egui::Margin::symmetric(30.0, 10.0))
                 .show(ui, |ui| {
                     ui.add_space(5.0);
                 
                 // Titre principal
                 ui.vertical_centered(|ui| {
-                    ui.heading(egui::RichText::new("ZENITH PATCHER").size(26.0).strong().color(egui::Color32::WHITE));
-                    ui.label(egui::RichText::new("Undertale Yellow & Red and Yellow").size(12.0).color(egui::Color32::GRAY));
+                    ui.heading(egui::RichText::new("ZENITH PATCHER").size(24.0).strong().color(egui::Color32::WHITE));
+                    ui.label(egui::RichText::new("Traduction française officielle du projet Zénith").size(11.0).color(egui::Color32::from_rgb(180, 180, 180)));
                 });
-                ui.add_space(20.0);
+                ui.add_space(15.0);
 
                 match state.current_step {
                     Step::MainSelection => {
                         ui.vertical_centered(|ui| {
-                            ui.label(egui::RichText::new("Choisissez le projet à traduire :").size(16.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
-                            ui.add_space(20.0);
+                            ui.label(egui::RichText::new("Sélectionnez le jeu à traduire :").size(15.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
+                            ui.add_space(15.0);
                             
                             ui.columns(2, |columns| {
                                 // Colonne 1 : Undertale Yellow
-                                columns[0].vertical_centered(|ui| {
-                                    if let Some(tex) = &self.tex_uty {
-                                        let img_click = ui.add(egui::Image::new(
-                                            egui::load::SizedTexture::new(tex.id(), [180.0, 240.0])
-                                        ).sense(egui::Sense::click()));
-                                        
-                                        if img_click.clicked() {
+                                let card_frame = egui::Frame::none()
+                                    .fill(egui::Color32::from_rgb(32, 20, 42))
+                                    .stroke(egui::Stroke::new(1.5, egui::Color32::from_rgb(70, 50, 90)))
+                                    .rounding(6.0)
+                                    .inner_margin(12.0);
+
+                                card_frame.show(&mut columns[0], |ui| {
+                                    ui.vertical_centered(|ui| {
+                                        if let Some(tex) = &self.tex_uty {
+                                            let img_click = ui.add(egui::Image::new(
+                                                egui::load::SizedTexture::new(tex.id(), [140.0, 186.0])
+                                            ).sense(egui::Sense::click()));
+                                            
+                                            if img_click.clicked() {
+                                                state.selected_project = Some(GameProject::UndertaleYellow);
+                                                state.current_step = Step::ChooseInstallMethod;
+                                            }
+                                        }
+                                        ui.add_space(8.0);
+                                        let btn_text = ui.add_sized([180.0, 36.0], egui::Button::new(
+                                            egui::RichText::new("Undertale Yellow").size(13.0).strong().color(egui::Color32::from_rgb(255, 204, 0))
+                                        ));
+                                        if btn_text.clicked() {
                                             state.selected_project = Some(GameProject::UndertaleYellow);
                                             state.current_step = Step::ChooseInstallMethod;
                                         }
-                                    }
-                                    ui.add_space(10.0);
-                                    let btn_text = ui.add_sized([180.0, 40.0], egui::Button::new(
-                                        egui::RichText::new("Undertale Yellow").size(14.0).color(egui::Color32::from_rgb(255, 204, 0))
-                                    ));
-                                    if btn_text.clicked() {
-                                        state.selected_project = Some(GameProject::UndertaleYellow);
-                                        state.current_step = Step::ChooseInstallMethod;
-                                    }
-                                    ui.add_space(5.0);
-                                    ui.label(egui::RichText::new("Traduction v0.5.0").size(11.0).color(egui::Color32::GRAY));
+                                        ui.add_space(4.0);
+                                        ui.label(egui::RichText::new("Traduction v0.5.0").size(10.0).color(egui::Color32::from_rgb(180, 180, 180)));
+                                    });
                                 });
  
                                 // Colonne 2 : Red & Yellow
-                                columns[1].vertical_centered(|ui| {
-                                    if let Some(tex) = &self.tex_ry {
-                                        let img_click = ui.add(egui::Image::new(
-                                            egui::load::SizedTexture::new(tex.id(), [180.0, 240.0])
-                                        ).sense(egui::Sense::click()));
-                                        
-                                        if img_click.clicked() {
+                                card_frame.show(&mut columns[1], |ui| {
+                                    ui.vertical_centered(|ui| {
+                                        if let Some(tex) = &self.tex_ry {
+                                            let img_click = ui.add(egui::Image::new(
+                                                egui::load::SizedTexture::new(tex.id(), [140.0, 186.0])
+                                            ).sense(egui::Sense::click()));
+                                            
+                                            if img_click.clicked() {
+                                                state.selected_project = Some(GameProject::RedAndYellow);
+                                                state.current_step = Step::ChooseInstallMethod;
+                                            }
+                                        }
+                                        ui.add_space(8.0);
+                                        let btn_text = ui.add_sized([180.0, 36.0], egui::Button::new(
+                                            egui::RichText::new("Red & Yellow").size(13.0).strong().color(egui::Color32::from_rgb(255, 51, 51))
+                                        ));
+                                        if btn_text.clicked() {
                                             state.selected_project = Some(GameProject::RedAndYellow);
                                             state.current_step = Step::ChooseInstallMethod;
                                         }
-                                    }
-                                    ui.add_space(10.0);
-                                    let btn_text = ui.add_sized([180.0, 40.0], egui::Button::new(
-                                        egui::RichText::new("Red & Yellow").size(14.0).color(egui::Color32::from_rgb(255, 51, 51))
-                                    ));
-                                    if btn_text.clicked() {
-                                        state.selected_project = Some(GameProject::RedAndYellow);
-                                        state.current_step = Step::ChooseInstallMethod;
-                                    }
-                                    ui.add_space(5.0);
-                                    ui.label(egui::RichText::new("Traduction v2.2.0").size(11.0).color(egui::Color32::GRAY));
+                                        ui.add_space(4.0);
+                                        ui.label(egui::RichText::new("Traduction v2.2.0").size(10.0).color(egui::Color32::from_rgb(180, 180, 180)));
+                                    });
                                 });
                             });
                         });
@@ -327,40 +398,42 @@ impl eframe::App for PatcherApp {
 
                         ui.vertical_centered(|ui| {
                             ui.label(egui::RichText::new(format!("Jeu sélectionné : {}", project_name)).size(16.0).strong().color(egui::Color32::WHITE));
-                            ui.add_space(20.0);
+                            ui.add_space(15.0);
 
-                            ui.label(egui::RichText::new("Choisissez votre mode d'installation :").size(14.0).color(egui::Color32::GRAY));
+                            ui.label(egui::RichText::new("Choisissez votre mode d'installation :").size(13.0).color(egui::Color32::from_rgb(180, 180, 180)));
                             ui.add_space(15.0);
 
                             // Mode 1 : Patcher existant
-                            let btn_a = ui.add_sized([420.0, 56.0], egui::Button::new(
-                                egui::RichText::new("Traduire un jeu existant").size(15.0).strong()
+                            let btn_a = ui.add_sized([420.0, 52.0], egui::Button::new(
+                                egui::RichText::new("Traduire un jeu existant").size(15.0).strong().color(egui::Color32::WHITE)
                             ));
-                            ui.label(egui::RichText::new("Recherche ou sélectionne le dossier de votre jeu déjà installé pour y appliquer la traduction.").size(11.0).color(egui::Color32::GRAY));
+                            ui.add_space(3.0);
+                            ui.label(egui::RichText::new("Détecte ou sélectionne le dossier de votre jeu déjà installé pour y appliquer le patch.").size(10.0).color(egui::Color32::GRAY));
                             if btn_a.clicked() {
                                 state.auto_install_uty = false;
                                 state.current_step = Step::DetectGame;
                                 start_game_detection(&mut state);
                             }
 
-                            ui.add_space(20.0);
+                            ui.add_space(15.0);
 
                             // Mode 2 : Installation complète (Yellow seulement)
                             if state.selected_project == Some(GameProject::UndertaleYellow) {
-                                let btn_b = ui.add_sized([420.0, 56.0], egui::Button::new(
+                                let btn_b = ui.add_sized([420.0, 52.0], egui::Button::new(
                                     egui::RichText::new("Télécharger et installer le jeu complet").size(15.0).strong().color(egui::Color32::from_rgb(255, 204, 0))
                                 ));
-                                ui.label(egui::RichText::new("Télécharge le jeu complet intégrant déjà la traduction française à l'endroit de votre choix.").size(11.0).color(egui::Color32::GRAY));
+                                ui.add_space(3.0);
+                                ui.label(egui::RichText::new("Télécharge le jeu complet configuré avec la traduction française (230 Mo).").size(10.0).color(egui::Color32::GRAY));
                                 if btn_b.clicked() {
                                     state.auto_install_uty = true;
                                     state.current_step = Step::InstallRepack;
                                 }
                             } else {
-                                ui.label(egui::RichText::new("(Le téléchargement autonome du jeu complet n'est pas disponible pour Red & Yellow)").size(11.0).color(egui::Color32::DARK_GRAY));
+                                ui.label(egui::RichText::new("(Le téléchargement autonome du jeu complet n'est pas disponible pour Red & Yellow)").size(10.0).color(egui::Color32::DARK_GRAY));
                             }
 
-                            ui.add_space(30.0);
-                            if ui.button("Retour").clicked() {
+                            ui.add_space(20.0);
+                            if ui.add_sized([120.0, 32.0], egui::Button::new("Retour")).clicked() {
                                 state.current_step = Step::MainSelection;
                                 state.selected_project = None;
                             }
@@ -370,50 +443,64 @@ impl eframe::App for PatcherApp {
                     Step::DetectGame => {
                         ui.vertical_centered(|ui| {
                             ui.label(egui::RichText::new("APPLICATION DE LA TRADUCTION").size(16.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
-                            ui.add_space(20.0);
+                            ui.add_space(15.0);
 
                             if let Some(path) = state.manual_path.clone().or_else(|| state.detected_path.clone()) {
-                                ui.group(|ui| {
-                                    ui.label(egui::RichText::new("Dossier de jeu détecté :").strong().size(13.0));
-                                    ui.label(egui::RichText::new(path.to_string_lossy().to_string()).color(egui::Color32::from_rgb(0, 180, 255)).size(12.0));
+                                let group_frame = egui::Frame::none()
+                                    .fill(egui::Color32::from_rgb(32, 20, 42))
+                                    .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(70, 50, 90)))
+                                    .rounding(4.0)
+                                    .inner_margin(12.0);
+
+                                group_frame.show(ui, |ui| {
+                                    ui.horizontal(|ui| {
+                                        ui.label(egui::RichText::new("Dossier détecté :").strong().size(13.0).color(egui::Color32::WHITE));
+                                    });
+                                    ui.add_space(2.0);
+                                    ui.label(egui::RichText::new(path.to_string_lossy().to_string()).color(egui::Color32::from_rgb(0, 180, 255)).size(11.0));
                                     ui.add_space(8.0);
                                     ui.checkbox(&mut state.create_shortcut, "Créer un raccourci de jeu sur le Bureau");
                                 });
                                 ui.add_space(15.0);
 
                                 ui.horizontal(|ui| {
-                                    ui.add_space(80.0);
-                                    if ui.button("Lancer la traduction").clicked() {
+                                    ui.add_space(60.0);
+                                    if ui.add_sized([180.0, 36.0], egui::Button::new(
+                                        egui::RichText::new("Lancer la traduction").size(13.0).strong().color(egui::Color32::from_rgb(255, 204, 0))
+                                    )).clicked() {
                                         state.current_step = Step::Patching;
                                         start_patching_process(Arc::clone(&self.state));
                                     }
-                                    if ui.button("Changer de dossier").clicked() {
+                                    ui.add_space(10.0);
+                                    if ui.add_sized([180.0, 36.0], egui::Button::new(
+                                        egui::RichText::new("Changer de dossier").size(13.0).color(egui::Color32::WHITE)
+                                    )).clicked() {
                                         if let Some(folder) = rfd::FileDialog::new().pick_folder() {
                                             state.manual_path = Some(folder);
                                         }
                                     }
-                                    ui.add_space(80.0);
+                                    ui.add_space(60.0);
                                 });
                             } else {
                                 match state.selected_project {
                                     Some(GameProject::UndertaleYellow) => {
                                         ui.label(egui::RichText::new("Le jeu Undertale Yellow n'a pas été détecté automatiquement.").size(13.0).color(egui::Color32::from_rgb(255, 180, 0)));
                                         ui.add_space(6.0);
-                                        ui.label("Ce jeu étant distribué via itch.io, vous pouvez soit indiquer");
-                                        ui.label("son dossier d'installation, soit le télécharger complet.");
+                                        ui.label("Ce jeu étant distribué via itch.io, veuillez indiquer");
+                                        ui.label("son dossier d'installation, ou choisissez l'installation complète.");
                                         ui.add_space(12.0);
-                                        ui.label(egui::RichText::new("Sélectionnez une option :").size(11.0).color(egui::Color32::GRAY));
-                                        ui.add_space(8.0);
                                         ui.horizontal(|ui| {
                                             ui.add_space(40.0);
-                                            if ui.button("Sélectionner le dossier du jeu").clicked() {
+                                            if ui.add_sized([220.0, 36.0], egui::Button::new(
+                                                egui::RichText::new("Sélectionner le dossier").size(13.0).color(egui::Color32::WHITE)
+                                            )).clicked() {
                                                 if let Some(folder) = rfd::FileDialog::new().pick_folder() {
                                                     state.manual_path = Some(folder);
                                                 }
                                             }
                                             ui.add_space(8.0);
-                                            if ui.add_sized([210.0, 28.0], egui::Button::new(
-                                                egui::RichText::new("Télécharger le jeu complet").color(egui::Color32::from_rgb(255, 204, 0))
+                                            if ui.add_sized([220.0, 36.0], egui::Button::new(
+                                                egui::RichText::new("Installer le jeu complet").size(13.0).strong().color(egui::Color32::from_rgb(255, 204, 0))
                                             )).clicked() {
                                                 state.auto_install_uty = true;
                                                 state.current_step = Step::InstallRepack;
@@ -423,8 +510,10 @@ impl eframe::App for PatcherApp {
                                     _ => {
                                         ui.label(egui::RichText::new("Recherche automatique échouée dans les répertoires Steam.").color(egui::Color32::from_rgb(255, 51, 51)));
                                         ui.label("Veuillez sélectionner manuellement le dossier contenant le jeu d'origine.");
-                                        ui.add_space(20.0);
-                                        if ui.button("Sélectionner le dossier du jeu").clicked() {
+                                        ui.add_space(15.0);
+                                        if ui.add_sized([240.0, 36.0], egui::Button::new(
+                                            egui::RichText::new("📁 Sélectionner le dossier du jeu").size(13.0).color(egui::Color32::WHITE)
+                                        )).clicked() {
                                             if let Some(folder) = rfd::FileDialog::new().pick_folder() {
                                                 state.manual_path = Some(folder);
                                             }
@@ -432,9 +521,9 @@ impl eframe::App for PatcherApp {
                                     }
                                 }
                             }
- 
-                            ui.add_space(30.0);
-                            if ui.button("Retour").clicked() {
+
+                            ui.add_space(20.0);
+                            if ui.add_sized([120.0, 32.0], egui::Button::new("Retour")).clicked() {
                                 state.current_step = Step::ChooseInstallMethod;
                                 state.manual_path = None;
                                 state.detected_path = None;
@@ -445,37 +534,46 @@ impl eframe::App for PatcherApp {
                     Step::InstallRepack => {
                         ui.vertical_centered(|ui| {
                             ui.label(egui::RichText::new("TÉLÉCHARGEMENT DU JEU COMPLET").size(16.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
-                            ui.add_space(15.0);
+                            ui.add_space(12.0);
 
-                            ui.label("Le programme va télécharger et installer le jeu complet intégrant déjà la traduction.");
-                            ui.label(egui::RichText::new("(Taille du fichier : environ 233 Mo)").size(11.0).color(egui::Color32::GRAY));
-                            ui.add_space(15.0);
+                            ui.label("Le programme va télécharger et installer le jeu complet configuré en français.");
+                            ui.label(egui::RichText::new("(Taille du téléchargement : environ 230 Mo)").size(10.0).color(egui::Color32::GRAY));
+                            ui.add_space(12.0);
 
-                            // Choix du dossier d'installation et du raccourci
-                            ui.group(|ui| {
-                                ui.label(egui::RichText::new("Dossier d'installation :").strong().size(13.0));
-                                ui.add_space(5.0);
+                            let group_frame = egui::Frame::none()
+                                .fill(egui::Color32::from_rgb(32, 20, 42))
+                                .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(70, 50, 90)))
+                                .rounding(4.0)
+                                .inner_margin(12.0);
+
+                            group_frame.show(ui, |ui| {
+                                ui.label(egui::RichText::new("Dossier d'installation :").strong().size(13.0).color(egui::Color32::WHITE));
+                                ui.add_space(4.0);
                                 ui.horizontal(|ui| {
-                                    ui.label("Chemin :");
-                                    ui.label(egui::RichText::new(state.install_dir.to_string_lossy().to_string()).color(egui::Color32::LIGHT_BLUE).size(12.0));
+                                    ui.label(egui::RichText::new(state.install_dir.to_string_lossy().to_string()).color(egui::Color32::LIGHT_BLUE).size(11.0));
                                     if ui.button("Modifier...").clicked() {
                                         if let Some(folder) = rfd::FileDialog::new().pick_folder() {
                                             state.install_dir = folder.join("UndertaleYellowFR");
                                         }
                                     }
                                 });
-                                ui.add_space(5.0);
+                                ui.add_space(6.0);
                                 ui.checkbox(&mut state.create_shortcut, "Créer un raccourci sur le Bureau");
                             });
                             ui.add_space(15.0);
 
                             ui.horizontal(|ui| {
-                                ui.add_space(70.0);
-                                if ui.button("Lancer le téléchargement").clicked() {
+                                ui.add_space(60.0);
+                                if ui.add_sized([180.0, 36.0], egui::Button::new(
+                                    egui::RichText::new("Lancer le téléchargement").size(13.0).strong().color(egui::Color32::from_rgb(255, 204, 0))
+                                )).clicked() {
                                     state.current_step = Step::Patching;
                                     start_patching_process(Arc::clone(&self.state));
                                 }
-                                if ui.button("Importer une archive locale").clicked() {
+                                ui.add_space(10.0);
+                                if ui.add_sized([180.0, 36.0], egui::Button::new(
+                                    egui::RichText::new("Importer un ZIP local").size(13.0).color(egui::Color32::WHITE)
+                                )).clicked() {
                                     if let Some(file) = rfd::FileDialog::new()
                                         .add_filter("Archive ZIP", &["zip"])
                                         .pick_file() 
@@ -485,10 +583,11 @@ impl eframe::App for PatcherApp {
                                         start_patching_process(Arc::clone(&self.state));
                                     }
                                 }
+                                ui.add_space(60.0);
                             });
 
-                            ui.add_space(30.0);
-                            if ui.button("Retour").clicked() {
+                            ui.add_space(20.0);
+                            if ui.add_sized([120.0, 32.0], egui::Button::new("Retour")).clicked() {
                                 state.current_step = Step::ChooseInstallMethod;
                             }
                         });
@@ -515,35 +614,41 @@ impl eframe::App for PatcherApp {
                     
                     Step::Success => {
                         ui.vertical_centered(|ui| {
-                            ui.heading(egui::RichText::new("TRADUCTION APPLIQUÉE AVEC SUCCÈS ").color(egui::Color32::from_rgb(0, 220, 100)).strong().size(18.0));
-                            ui.add_space(20.0);
+                            ui.heading(egui::RichText::new("TRADUCTION APPLIQUÉE AVEC SUCCÈS").color(egui::Color32::from_rgb(0, 220, 100)).strong().size(18.0));
+                            ui.add_space(15.0);
                             
                             ui.label("Félicitations ! Votre jeu est désormais entièrement traduit en français.");
-                            ui.label(egui::RichText::new("Une sauvegarde de sécurité du fichier original a été créée.").size(11.0).color(egui::Color32::GRAY));
-                            ui.add_space(25.0);
+                            ui.label(egui::RichText::new("Une sauvegarde de sécurité du fichier original a été créée.").size(10.0).color(egui::Color32::GRAY));
+                            ui.add_space(15.0);
 
                             if let Some(game_dir) = &state.final_game_dir {
-                                ui.group(|ui| {
-                                    ui.label(egui::RichText::new("Dossier d'installation du jeu :").strong().size(13.0));
-                                    ui.label(egui::RichText::new(game_dir.to_string_lossy().to_string()).color(egui::Color32::from_rgb(0, 180, 255)).size(12.0));
+                                let group_frame = egui::Frame::none()
+                                    .fill(egui::Color32::from_rgb(32, 20, 42))
+                                    .stroke(egui::Stroke::new(1.0, egui::Color32::from_rgb(70, 50, 90)))
+                                    .rounding(4.0)
+                                    .inner_margin(12.0);
+
+                                group_frame.show(ui, |ui| {
+                                    ui.label(egui::RichText::new("Dossier du jeu :").strong().size(12.0).color(egui::Color32::WHITE));
+                                    ui.label(egui::RichText::new(game_dir.to_string_lossy().to_string()).color(egui::Color32::from_rgb(0, 180, 255)).size(11.0));
                                 });
-                                ui.add_space(20.0);
+                                ui.add_space(15.0);
                             }
 
                             if let (Some(project), Some(game_dir)) = (state.selected_project, &state.final_game_dir) {
-                                let btn_launch = ui.add_sized([300.0, 48.0], egui::Button::new(
-                                    egui::RichText::new("Lancer le jeu maintenant").size(15.0).strong().color(egui::Color32::from_rgb(255, 204, 0))
+                                let btn_launch = ui.add_sized([300.0, 44.0], egui::Button::new(
+                                    egui::RichText::new("Lancer le jeu maintenant").size(14.0).strong().color(egui::Color32::from_rgb(255, 204, 0))
                                 ));
                                 if btn_launch.clicked() {
                                     launch_game(project, game_dir, state.final_is_unx);
                                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                 }
-                                ui.add_space(20.0);
+                                ui.add_space(15.0);
                             }
                             
                             ui.horizontal(|ui| {
-                                ui.add_space(70.0);
-                                if ui.button("Revenir à l'accueil").clicked() {
+                                ui.add_space(60.0);
+                                if ui.add_sized([180.0, 32.0], egui::Button::new("Accueil")).clicked() {
                                     state.current_step = Step::MainSelection;
                                     state.selected_project = None;
                                     state.detected_path = None;
@@ -551,9 +656,11 @@ impl eframe::App for PatcherApp {
                                     state.progress = 0.0;
                                     state.auto_install_uty = false;
                                 }
-                                if ui.button("Quitter").clicked() {
+                                ui.add_space(10.0);
+                                if ui.add_sized([180.0, 32.0], egui::Button::new("Quitter")).clicked() {
                                     ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                                 }
+                                ui.add_space(60.0);
                             });
                         });
                     }
@@ -568,7 +675,7 @@ impl eframe::App for PatcherApp {
 
                             if state.error_message.contains("repack") || state.error_message.contains("zip") || state.error_message.contains("Connexion") || state.error_message.contains("403") {
                                 ui.label("Vous pouvez sélectionner manuellement l'archive de jeu contenant la traduction :");
-                                if ui.button("Sélectionner l'archive locale").clicked() {
+                                if ui.add_sized([240.0, 36.0], egui::Button::new("Sélectionner l'archive locale")).clicked() {
                                     if let Some(file) = rfd::FileDialog::new()
                                         .add_filter("Archive Zip", &["zip"])
                                         .pick_file() 
@@ -582,13 +689,14 @@ impl eframe::App for PatcherApp {
                             }
                             
                             ui.horizontal(|ui| {
-                                ui.add_space(70.0);
-                                if ui.button("Réessayer").clicked() {
+                                ui.add_space(60.0);
+                                if ui.add_sized([180.0, 32.0], egui::Button::new("Réessayer")).clicked() {
                                     state.current_step = Step::DetectGame;
                                     state.progress = 0.0;
                                     state.error_message.clear();
                                 }
-                                if ui.button("Retour").clicked() {
+                                ui.add_space(10.0);
+                                if ui.add_sized([180.0, 32.0], egui::Button::new("Accueil")).clicked() {
                                     state.current_step = Step::MainSelection;
                                     state.selected_project = None;
                                     state.detected_path = None;
@@ -597,31 +705,31 @@ impl eframe::App for PatcherApp {
                                     state.error_message.clear();
                                     state.auto_install_uty = false;
                                 }
+                                ui.add_space(60.0);
                             });
                         });
                     }
                 }
                 
-                // --- Section Support Discord & Version (Avec espacement et alignement soigné) ---
-                ui.add_space(25.0);
+                // --- Barre de support Discord & Version (Alignement soigné) ---
+                ui.add_space(15.0);
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Zenith Patcher v1.0.0").size(11.0).color(egui::Color32::from_rgb(120, 120, 120)));
+                    ui.label(egui::RichText::new("Zénith Patcher v1.0.0").size(10.0).color(egui::Color32::from_rgb(120, 120, 120)));
                     
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         ui.add_space(10.0);
                         
-                        let text = egui::RichText::new("Aide & Discord").size(12.0).color(egui::Color32::from_rgb(180, 180, 180));
+                        let text = egui::RichText::new("Aide & Discord").size(11.0).color(egui::Color32::from_rgb(180, 180, 180));
                         let response = ui.add(egui::Button::new(text).frame(false));
                         if response.clicked() {
                             let _ = webbrowser::open(DISCORD_URL);
                         }
                         
                         if let Some(discord_tex) = &self.tex_discord {
-                            ui.image((discord_tex.id(), egui::vec2(16.0, 16.0)));
+                            ui.image((discord_tex.id(), egui::vec2(14.0, 14.0)));
                         }
                     });
                 });
-                ui.add_space(15.0);
             });
         });
     }
@@ -1027,18 +1135,22 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
             &original_file
         };
 
-        // Exécution de xdelta
         let temp_patched_file = temp_dir.path().join("patched.win");
-        let output = Command::new(&xdelta_bin_path)
-            .args(&[
-                "-d",
-                "-f",
-                "-s",
-                source_file.to_str().unwrap(),
-                patch_path.to_str().unwrap(),
-                temp_patched_file.to_str().unwrap()
-            ])
-            .output();
+        let mut cmd = Command::new(&xdelta_bin_path);
+        cmd.args(&[
+            "-d",
+            "-f",
+            "-s",
+            source_file.to_str().unwrap(),
+            patch_path.to_str().unwrap(),
+            temp_patched_file.to_str().unwrap()
+        ]);
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // Empêche le clignotement de la console cmd
+        }
+        let output = cmd.output();
 
         match output {
             Ok(out) if out.status.success() => {
@@ -1079,6 +1191,39 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
                     }
                 }
 
+                if project == GameProject::RedAndYellow && !is_unx {
+                    {
+                        let mut state = state_mutex.lock().unwrap();
+                        state.status_message = "Téléchargement des musiques du mod (124 Mo)...".to_string();
+                        state.progress = 0.85;
+                    }
+                    let assets_url = "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-assets.zip";
+                    let assets_zip = temp_dir.path().join("ry-assets.zip");
+                    match download_file(assets_url, &assets_zip, &state_mutex, 0.85, 0.96) {
+                        Ok(_) => {
+                            {
+                                let mut state = state_mutex.lock().unwrap();
+                                state.status_message = "Extraction des musiques...".to_string();
+                                state.progress = 0.97;
+                            }
+                            if let Err(e) = extract_zip(&assets_zip, &game_path) {
+                                let mut state = state_mutex.lock().unwrap();
+                                state.current_step = Step::Error;
+                                state.error_message = format!("Échec de l'extraction des musiques du mod :\n{}", e);
+                                state.is_patching = false;
+                                return;
+                            }
+                        }
+                        Err(e) => {
+                            let mut state = state_mutex.lock().unwrap();
+                            state.current_step = Step::Error;
+                            state.error_message = format!("Échec du téléchargement des musiques du mod :\n{}", e);
+                            state.is_patching = false;
+                            return;
+                        }
+                    }
+                }
+
                 if create_shortcut {
                     let _ = try_create_shortcut(project, &game_path, is_unx);
                 }
@@ -1107,18 +1252,26 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
     });
 }
 
-// Utilitaire d'extraction zip
 fn extract_zip(zip_path: &Path, dest_path: &Path) -> Result<(), String> {
-    let status = if cfg!(windows) {
-        Command::new("powershell")
-            .args(&[
+    let status = if cfg!(target_os = "windows") {
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            let mut cmd = Command::new("powershell");
+            cmd.creation_flags(0x08000000); // Empêche l'ouverture du terminal cmd
+            cmd.args(&[
                 "-Command",
                 &format!("Expand-Archive -Path '{}' -DestinationPath '{}' -Force", 
                     zip_path.to_str().unwrap(), 
                     dest_path.to_str().unwrap()
                 )
-            ])
-            .status()
+            ]);
+            cmd.status()
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            Ok(std::process::Command::new("true").status().unwrap())
+        }
     } else {
         Command::new("unzip")
             .args(&[
@@ -1375,6 +1528,32 @@ fn ensure_linux_desktop_entry() {
 fn ensure_linux_desktop_entry() {}
 
 fn main() -> eframe::Result<()> {
+    #[cfg(target_os = "windows")]
+    {
+        // Enregistrer les panics dans un fichier log
+        std::panic::set_hook(Box::new(|info| {
+            let msg = if let Some(s) = info.payload().downcast_ref::<&str>() {
+                *s
+            } else if let Some(s) = info.payload().downcast_ref::<String>() {
+                s.as_str()
+            } else {
+                "Unknown panic"
+            };
+            let location = if let Some(loc) = info.location() {
+                format!("at {}:{}", loc.file(), loc.line())
+            } else {
+                "unknown location".to_string()
+            };
+            let error_msg = format!("PANIC: {} {}\n", msg, location);
+            if let Ok(mut exe_dir) = std::env::current_exe() {
+                exe_dir.pop();
+                let _ = std::fs::write(exe_dir.join("zenith_patcher_panic.txt"), error_msg);
+            } else {
+                let _ = std::fs::write("zenith_patcher_panic.txt", error_msg);
+            }
+        }));
+    }
+
     // S'assurer de la présence du lanceur desktop et de l'icône système sous Linux
     ensure_linux_desktop_entry();
 
@@ -1384,17 +1563,35 @@ fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_inner_size([700.0, 440.0]) // Ratio d'aspect panoramique optimal
-            .with_resizable(false)
-            .with_min_inner_size([700.0, 440.0])
-            .with_max_inner_size([700.0, 440.0])
+            .with_resizable(true)
+            .with_maximize_button(true)
+            .with_decorations(false) // Supprime le cadre Windows d'origine (blanc)
             .with_icon(icon.unwrap_or_default())
             .with_title("Zenith Patcher"), // Titre standard pour GNOME / barre des tâches
+        renderer: eframe::Renderer::Wgpu,
+        wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
+            supported_backends: eframe::wgpu::Backends::all(),
+            ..Default::default()
+        },
         ..Default::default()
     };
     
-    eframe::run_native(
+    let result = eframe::run_native(
         "zenith-patcher", // app_id pour correspondre au WM_CLASS de GNOME
         options,
         Box::new(|cc| Ok(Box::new(PatcherApp::new(cc)))),
-    )
+    );
+
+    if let Err(ref e) = result {
+        if let Ok(mut exe_dir) = std::env::current_exe() {
+            exe_dir.pop();
+            let _ = std::fs::write(exe_dir.join("zenith_patcher_error.txt"), format!("EFRAME ERROR: {:?}", e));
+        } else {
+            let _ = std::fs::write("zenith_patcher_error.txt", format!("EFRAME ERROR: {:?}", e));
+        }
+    }
+
+    result
 }
+
+
