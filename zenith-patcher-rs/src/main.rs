@@ -1238,6 +1238,19 @@ fn get_github_repack_url(project: GameProject) -> Result<String, String> {
 }
 
 
+fn calculate_file_sha256(path: &Path) -> Option<String> {
+    use sha2::{Sha256, Digest};
+    let mut file = fs::File::open(path).ok()?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 65536];
+    loop {
+        let n = std::io::Read::read(&mut file, &mut buffer).ok()?;
+        if n == 0 { break; }
+        hasher.update(&buffer[..n]);
+    }
+    Some(format!("{:x}", hasher.finalize()))
+}
+
 // Processus asynchrone de téléchargement et de patching
 fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
     thread::spawn(move || {
@@ -1424,6 +1437,35 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
             }
         };
 
+        // 1. Calcul du hash SHA256 pour identification exacte de la version
+        {
+            let mut state = state_mutex.lock().unwrap();
+            state.status_message = "Vérification de la version du jeu...".to_string();
+            state.progress = 0.15;
+        }
+
+        let file_hash = calculate_file_sha256(&original_file).unwrap_or_default();
+
+        // 2. Vérification si le jeu est déjà à la dernière version
+        let is_already_latest = match project {
+            GameProject::UndertaleYellow => file_hash == "505ca0dbbb7743c833cebdc84f2892890ce84c5da6115c7d30707fe5f05dd873",
+            GameProject::RedAndYellow => {
+                file_hash == "22378c9a9419995b2e46b34589268ca4cd52e4bcbbf2698cef13579910bd5a40" // Win FR v2.2.0
+                || file_hash == "52215f9dd2b4601aada2df114728237277c596cd7b6c2d3b981799e8cb868ff4" // Linux FR v2.2.0
+            }
+        };
+
+        if is_already_latest {
+            let mut state = state_mutex.lock().unwrap();
+            state.final_game_dir = Some(game_path.clone());
+            state.final_is_unx = is_unx;
+            state.current_step = Step::Success;
+            state.status_message = "Votre jeu est déjà à la dernière version de la traduction française !".to_string();
+            state.progress = 1.0;
+            state.is_patching = false;
+            return;
+        }
+
         // --- Logique du Patcher Manuel avec Fichier Local ---
         let local_patch_paths = match project {
             GameProject::UndertaleYellow => vec![
@@ -1461,18 +1503,28 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
         }
 
         if !is_local_patch {
-            let original_file_size = fs::metadata(&original_file).map(|m| m.len()).unwrap_or(0);
             let patch_url = match project {
                 GameProject::UndertaleYellow => "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/uty-fr-v0.5.0/uty-fr-v0.5.0.xdelta".to_string(),
                 GameProject::RedAndYellow => {
                     if is_unx {
                         "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-linux-v2.1.4.xdelta".to_string()
-                    } else if original_file_size < 75_000_000 {
-                        // Fichier source = Undertale de base non moddé (~62 Mo)
+                    } else if file_hash == "b718f8223a5bb31979ffeed10be6140c857b882fc0d0462b89d6287ae38c81c7" {
+                        // Base Undertale Vanilla v1.08 (Steam/GOG)
                         "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-vanilla-v2.2.0.xdelta".to_string()
-                    } else {
-                        // Fichier source = Version Red and Yellow existante (~92 Mo)
+                    } else if file_hash == "6e131d2efbe0fd36fd96e76e909dd754b3909fec87e769f7792a17c6ded22d86" {
+                        // Ancienne version FR avec bugs -> mise à jour directe
+                        "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-update-from-old-v2.2.0.xdelta".to_string()
+                    } else if file_hash == "d36131d54f86fd4a9bbb438491e6fe87f6e302a8919c24266774dc87b85f9219" {
+                        // Base Red & Yellow Anglaise
                         "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-v2.2.0.xdelta".to_string()
+                    } else {
+                        // Fallback selon la taille
+                        let sz = fs::metadata(&original_file).map(|m| m.len()).unwrap_or(0);
+                        if sz < 75_000_000 {
+                            "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-vanilla-v2.2.0.xdelta".to_string()
+                        } else {
+                            "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-v2.2.0.xdelta".to_string()
+                        }
                     }
                 }
             };
