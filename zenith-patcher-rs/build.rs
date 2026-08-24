@@ -1,12 +1,12 @@
 fn main() {
-    #[cfg(windows)]
-    {
+    if std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default() == "windows" {
         let mut res = winres::WindowsResource::new();
         res.set_icon("src/icon.ico");
         res.set("ProductName", "Zenith Patcher");
-        res.set("FileDescription", "Patcher de traduction française pour Undertale Yellow et Red & Yellow");
-        res.set("LegalCopyright", "Zénith Team");
-        res.set("OriginalFilename", "zenith-patcher-windows.exe");
+        res.set("FileDescription", "Zenith Patcher - Traduction FR");
+        res.set("CompanyName", "Zenith Team");
+        res.set("LegalCopyright", "Zenith Team");
+        res.set("OriginalFilename", "Zenith-Patcher.exe");
         let _ = res.compile();
     }
 }

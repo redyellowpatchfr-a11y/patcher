@@ -19,11 +19,11 @@ jobs:
           - os-name: Linux
             runs-on: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            bin-name: zenith-patcher-linux
+            bin-name: Zenith-Patcher
           - os-name: Windows
             runs-on: windows-latest
             target: x86_64-pc-windows-msvc
-            bin-name: zenith-patcher-windows.exe
+            bin-name: Zenith-Patcher.exe
 
     steps:
       - name: Checkout source code
@@ -73,7 +73,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            zenith-patcher-linux/zenith-patcher-linux
-            zenith-patcher-windows.exe/zenith-patcher-windows.exe
+            Zenith-Patcher/Zenith-Patcher
+            Zenith-Patcher.exe/Zenith-Patcher.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1966,7 +1966,15 @@ fn main() -> eframe::Result<()> {
             .with_decorations(true)
             .with_icon(icon.unwrap_or_default())
             .with_title("Zenith Patcher"),
+        #[cfg(target_os = "windows")]
+        renderer: eframe::Renderer::Wgpu,
+        #[cfg(not(target_os = "windows"))]
         renderer: eframe::Renderer::Glow,
+        #[cfg(target_os = "windows")]
+        wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
+            supported_backends: eframe::wgpu::Backends::all(),
+            ..Default::default()
+        },
         ..Default::default()
     };
     
