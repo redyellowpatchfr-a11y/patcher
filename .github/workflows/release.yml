@@ -55,23 +55,24 @@ jobs:
             mv zenith-patcher-rs/target/${{ matrix.platform.target }}/release/zenith-patcher-rs ${{ matrix.platform.bin-name }}
           fi
 
-      - name: Compress binary (UPX)
+      - name: Compress binary (Windows UPX) & Archive (Linux)
         shell: bash
         run: |
           if [ "${{ matrix.platform.runs-on }}" = "windows-latest" ]; then
             choco install upx --no-progress
             upx --best --lzma ${{ matrix.platform.bin-name }}
           else
-            sudo apt-get update && sudo apt-get install -y upx
-            upx --best --lzma ${{ matrix.platform.bin-name }}
             chmod +x ${{ matrix.platform.bin-name }}
+            tar -czvf Zenith-Patcher-Linux.tar.gz ${{ matrix.platform.bin-name }}
           fi
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.platform.bin-name }}
-          path: ${{ matrix.platform.bin-name }}
+          path: |
+            ${{ matrix.platform.bin-name }}
+            *.tar.gz
 
   release:
     name: Create GitHub Release
@@ -86,6 +87,7 @@ jobs:
         with:
           files: |
             Zenith-Patcher/Zenith-Patcher
+            Zenith-Patcher/Zenith-Patcher-Linux.tar.gz
             Zenith-Patcher.exe/Zenith-Patcher.exe
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

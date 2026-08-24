@@ -220,19 +220,21 @@ fn setup_retro_style(ctx: &egui::Context) {
     style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, egui::Color32::BLACK);
 
     style.text_styles = [
-        (egui::TextStyle::Heading, egui::FontId::new(20.0, egui::FontFamily::Proportional)),
-        (egui::TextStyle::Body, egui::FontId::new(13.0, egui::FontFamily::Proportional)),
-        (egui::TextStyle::Monospace, egui::FontId::new(13.0, egui::FontFamily::Monospace)),
-        (egui::TextStyle::Button, egui::FontId::new(13.0, egui::FontFamily::Proportional)),
-        (egui::TextStyle::Small, egui::FontId::new(11.0, egui::FontFamily::Proportional)),
+        (egui::TextStyle::Heading, egui::FontId::new(16.0, egui::FontFamily::Proportional)),
+        (egui::TextStyle::Body, egui::FontId::new(14.0, egui::FontFamily::Proportional)),
+        (egui::TextStyle::Monospace, egui::FontId::new(14.0, egui::FontFamily::Monospace)),
+        (egui::TextStyle::Button, egui::FontId::new(14.0, egui::FontFamily::Proportional)),
+        (egui::TextStyle::Small, egui::FontId::new(12.0, egui::FontFamily::Proportional)),
     ].into();
 
     ctx.set_global_style(style);
 
     let mut fonts = egui::FontDefinitions::default();
+    let mut font_data = egui::FontData::from_static(include_bytes!("../assets/DeterminationMono.ttf"));
+    font_data.tweak.scale = 1.0;
     fonts.font_data.insert(
         "DeterminationMono".to_owned(),
-        egui::FontData::from_static(include_bytes!("../assets/DeterminationMono.ttf")).into(),
+        font_data.into(),
     );
     
     fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap()
@@ -394,7 +396,7 @@ fn custom_option_card(
     ui.painter().rect_stroke(rect, 6.0, egui::Stroke::new(if is_hovered { 1.5_f32 } else { 1.0_f32 }, stroke_color), egui::StrokeKind::Outside);
     
     // Titre
-    let title_font = egui::FontId::new(13.0, egui::FontFamily::Proportional);
+    let title_font = egui::FontId::new(14.0, egui::FontFamily::Proportional);
     ui.painter().text(
         egui::pos2(rect.min.x + 16.0, rect.min.y + 15.0),
         egui::Align2::LEFT_CENTER,
@@ -404,7 +406,7 @@ fn custom_option_card(
     );
     
     // Description avec wrapping automatique pour éviter tout débordement
-    let desc_font = egui::FontId::new(11.0, egui::FontFamily::Proportional);
+    let desc_font = egui::FontId::new(12.0, egui::FontFamily::Proportional);
     let galley = ui.painter().layout(
         desc.to_string(),
         desc_font,
@@ -661,8 +663,8 @@ impl egui_software_backend::App for PatcherApp {
                         let avail_w = ui.available_width();
                         let avail_h = ui.available_height();
                         
-                        let left_w = (avail_w * 0.26).clamp(150.0, 220.0);
-                        let right_w = (avail_w * 0.64).clamp(440.0, 680.0);
+                        let left_w = (avail_w * 0.28).clamp(160.0, 220.0);
+                        let right_w = (avail_w * 0.65).clamp(460.0, 680.0);
                         let total_w = left_w + right_w + 30.0;
                         let margin_x = ((avail_w - total_w) / 2.0).max(0.0);
                         let top_margin = ((avail_h - 320.0) / 2.0).clamp(4.0, 30.0);
@@ -688,7 +690,7 @@ impl egui_software_backend::App for PatcherApp {
                                         ui.add_space(8.0);
                                     }
                                     ui.label(egui::RichText::new(project_name).size(14.0).strong().color(egui::Color32::WHITE));
-                                    ui.label(egui::RichText::new(version_str).size(11.0).color(egui::Color32::from_rgb(255, 204, 0)));
+                                    ui.label(egui::RichText::new(version_str).size(12.0).color(egui::Color32::from_rgb(255, 204, 0)));
                                 });
                             });
 
@@ -697,7 +699,7 @@ impl egui_software_backend::App for PatcherApp {
                             // --- Colonne Droite : Options d'installation ---
                             ui.vertical(|ui| {
                                 ui.set_width(right_w);
-                                ui.label(egui::RichText::new("CHOIX DU MODE D'INSTALLATION").size(15.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
+                                ui.label(egui::RichText::new("CHOIX DU MODE D'INSTALLATION").size(16.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
                                 ui.add_space(2.0);
                                 ui.label(egui::RichText::new("Sélectionnez l'option correspondant à votre situation :").size(11.0).color(egui::Color32::from_rgb(170, 165, 185)));
                                 ui.add_space(10.0);
@@ -2057,10 +2059,11 @@ fn main() {
     // Configuration du backend logiciel (rendu CPU pur, aucun GPU requis)
     let icon = load_app_icon_data(APP_ICON_BYTES);
     let mut settings = SoftwareBackendAppConfiguration::new()
-        .inner_size(Some(egui::vec2(760.0, 500.0)))
-        .min_inner_size(Some(egui::vec2(760.0, 500.0)))
+        .inner_size(Some(egui::vec2(840.0, 540.0)))
+        .min_inner_size(Some(egui::vec2(840.0, 540.0)))
+        .max_inner_size(Some(egui::vec2(840.0, 540.0)))
         .title(Some("Zenith Patcher".to_string()))
-        .resizable(Some(true));
+        .resizable(Some(false));
 
     if let Some(icon) = icon {
         settings = settings.icon(Some(icon));
