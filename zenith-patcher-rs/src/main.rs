@@ -1873,7 +1873,7 @@ fn draw_custom_progress_bar(ui: &mut egui::Ui, progress: f32) {
         // Rectangle interne
         let inner_rect = rect.shrink(3.0);
         
-        // Fond rouge sombre (style HP d'Undertale)
+        // Fond rouge sombre
         ui.painter().rect_filled(inner_rect, 0.0, egui::Color32::from_rgb(180, 0, 0));
         
         // Remplissage jaune de progression
@@ -1938,6 +1938,13 @@ fn run_app(renderer: eframe::Renderer, icon: Option<egui::IconData>) -> eframe::
         wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
             supported_backends: eframe::wgpu::Backends::all(),
             power_preference: eframe::wgpu::PowerPreference::None,
+            device_descriptor: std::sync::Arc::new(|_adapter| {
+                eframe::wgpu::DeviceDescriptor {
+                    label: Some("zenith_patcher_wgpu"),
+                    required_features: eframe::wgpu::Features::empty(),
+                    required_limits: eframe::wgpu::Limits::downlevel_defaults(),
+                }
+            }),
             ..Default::default()
         },
         ..Default::default()
@@ -1983,12 +1990,21 @@ fn main() -> eframe::Result<()> {
     // Icône de l'application (coeur rouge d'Undertale) redimensionnée carré 64x64
     let icon = load_app_icon(APP_ICON_BYTES);
 
-    // 1er essai : WGPU avec support adaptateur logiciel (WARP/DirectX/Vulkan)
+    #[cfg(target_os = "windows")]
     let result = run_app(eframe::Renderer::Wgpu, icon.clone());
 
-    // 2ème essai : Repli automatique sur Glow (OpenGL) si WGPU n'a pas trouvé d'adaptateur
+    #[cfg(not(target_os = "windows"))]
+    let result = run_app(eframe::Renderer::Glow, icon.clone());
+
     let final_result = if result.is_err() {
-        run_app(eframe::Renderer::Glow, icon)
+        #[cfg(target_os = "windows")]
+        {
+            run_app(eframe::Renderer::Glow, icon)
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            run_app(eframe::Renderer::Wgpu, icon)
+        }
     } else {
         result
     };
