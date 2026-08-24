@@ -204,6 +204,14 @@ fn setup_retro_style(ctx: &egui::Context) {
     style.visuals.selection.bg_fill = egui::Color32::from_rgb(255, 204, 0);
     style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, egui::Color32::BLACK);
 
+    style.text_styles = [
+        (egui::TextStyle::Heading, egui::FontId::new(20.0, egui::FontFamily::Proportional)),
+        (egui::TextStyle::Body, egui::FontId::new(13.0, egui::FontFamily::Proportional)),
+        (egui::TextStyle::Monospace, egui::FontId::new(13.0, egui::FontFamily::Monospace)),
+        (egui::TextStyle::Button, egui::FontId::new(13.0, egui::FontFamily::Proportional)),
+        (egui::TextStyle::Small, egui::FontId::new(11.0, egui::FontFamily::Proportional)),
+    ].into();
+
     ctx.set_global_style(style);
 
     let mut fonts = egui::FontDefinitions::default();
@@ -330,12 +338,12 @@ fn custom_option_card(
     let is_clicked = response.is_pointer_button_down_on();
     
     let bg_color = if is_clicked {
-        egui::Color32::from_rgb(55, 20, 32)
+        egui::Color32::from_rgb(45, 18, 22)
     } else if is_hovered {
         if is_primary {
-            egui::Color32::from_rgb(38, 28, 10)
+            egui::Color32::from_rgb(38, 26, 12)
         } else {
-            egui::Color32::from_rgb(30, 22, 42)
+            egui::Color32::from_rgb(32, 22, 44)
         }
     } else {
         if is_primary {
@@ -371,24 +379,24 @@ fn custom_option_card(
     ui.painter().rect_stroke(rect, 6.0, egui::Stroke::new(if is_hovered { 1.5_f32 } else { 1.0_f32 }, stroke_color), egui::StrokeKind::Outside);
     
     // Titre
-    let title_font = egui::FontId::proportional(12.5);
+    let title_font = egui::FontId::new(13.0, egui::FontFamily::Proportional);
     ui.painter().text(
-        egui::pos2(rect.min.x + 18.0, rect.min.y + 15.0),
+        egui::pos2(rect.min.x + 16.0, rect.min.y + 15.0),
         egui::Align2::LEFT_CENTER,
         title,
         title_font,
         title_color,
     );
     
-    // Description sous le titre
-    let desc_font = egui::FontId::proportional(9.5);
-    ui.painter().text(
-        egui::pos2(rect.min.x + 18.0, rect.min.y + 35.0),
-        egui::Align2::LEFT_CENTER,
-        desc,
+    // Description avec wrapping automatique pour éviter tout débordement
+    let desc_font = egui::FontId::new(11.0, egui::FontFamily::Proportional);
+    let galley = ui.painter().layout(
+        desc.to_string(),
         desc_font,
         egui::Color32::from_rgb(170, 165, 185),
+        rect.width() - 32.0,
     );
+    ui.painter().galley(egui::pos2(rect.min.x + 16.0, rect.min.y + 30.0), galley, egui::Color32::from_rgb(170, 165, 185));
     
     response
 }
@@ -398,11 +406,14 @@ impl egui_software_backend::App for PatcherApp {
         let ctx = ui.ctx().clone();
         let mut state = self.state.lock().unwrap();
         
+        // Configuration initiale du style au premier affichage
+        setup_retro_style(&ctx);
+
         if state.is_patching {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
 
-        // --- 1. Barre de navigation inférieure fixe (Footer) ---
+        // --- 1. Barre Inférieure (Footer) ---
         let bottom_bar_frame = egui::Frame::NONE
             .fill(egui::Color32::from_rgb(12, 8, 18))
             .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(32, 22, 46)))
@@ -412,53 +423,46 @@ impl egui_software_backend::App for PatcherApp {
             .frame(bottom_bar_frame)
             .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Zénith Patcher v1.0.0").size(11.0).color(egui::Color32::from_rgb(140, 135, 155)));
+                    ui.label(egui::RichText::new("Zénith Patcher v1.0.0").size(12.0).color(egui::Color32::from_rgb(140, 135, 155)));
                     
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let (rect, response) = ui.allocate_exact_size(egui::vec2(125.0, 20.0), egui::Sense::click());
-                        if response.hovered() {
+                        let link_color = egui::Color32::from_rgb(180, 170, 205);
+                        let hover_color = egui::Color32::from_rgb(255, 204, 0);
+
+                        let (rect, response) = ui.allocate_exact_size(egui::vec2(130.0, 22.0), egui::Sense::click());
+                        let is_hovered = response.hovered();
+
+                        if is_hovered {
                             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                         }
+
                         if response.clicked() {
                             let _ = webbrowser::open(DISCORD_URL);
                         }
-                        
-                        let is_hovered = response.hovered();
-                        let link_color = if is_hovered {
-                            egui::Color32::from_rgb(114, 137, 218)
-                        } else {
-                            egui::Color32::from_rgb(180, 175, 200)
-                        };
-                        
-                        let mut icon_rect = rect;
-                        icon_rect.set_width(14.0);
-                        icon_rect.set_height(14.0);
-                        let icon_pos = egui::pos2(rect.min.x, rect.center().y - 7.0);
-                        
-                        if let Some(discord_tex) = &self.tex_discord {
+
+                        let text_color = if is_hovered { hover_color } else { link_color };
+
+                        if let Some(tex) = &self.tex_discord {
+                            let icon_rect = egui::Rect::from_min_size(
+                                egui::pos2(rect.min.x + 4.0, rect.min.y + 3.0),
+                                egui::vec2(16.0, 16.0)
+                            );
                             ui.painter().image(
-                                discord_tex.id(),
-                                egui::Rect::from_min_size(icon_pos, egui::vec2(14.0, 14.0)),
+                                tex.id(),
+                                icon_rect,
                                 egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                                if is_hovered { egui::Color32::WHITE } else { egui::Color32::from_rgb(180, 175, 200) }
+                                egui::Color32::WHITE
                             );
                         }
-                        
-                        let font_id = egui::FontId::proportional(11.0);
-                        let text_pos = egui::pos2(rect.min.x + 20.0, rect.center().y);
+
+                        let font_id = egui::FontId::new(12.0, egui::FontFamily::Proportional);
                         ui.painter().text(
-                            text_pos,
+                            egui::pos2(rect.min.x + 26.0, rect.center().y),
                             egui::Align2::LEFT_CENTER,
                             "Aide & Discord",
                             font_id,
-                            link_color,
+                            text_color,
                         );
-                        if is_hovered {
-                            ui.painter().line_segment(
-                                [egui::pos2(text_pos.x, text_pos.y + 6.0), egui::pos2(text_pos.x + 85.0, text_pos.y + 6.0)],
-                                egui::Stroke::new(1.0_f32, link_color)
-                            );
-                        }
                     });
                 });
             });
@@ -480,22 +484,19 @@ impl egui_software_backend::App for PatcherApp {
                 .inner_margin(egui::Margin::symmetric(28, 16))
                 .show(ui, |ui| {
                 
-                // En-tête et Stepper de navigation (Ordre 1 -> 2 -> 3 -> 4)
+                // En-tête et Stepper de navigation
                 ui.horizontal(|ui| {
-                    ui.horizontal(|ui| {
-                        if let Some(heart_tex) = &self.tex_heart {
-                            ui.image((heart_tex.id(), egui::vec2(18.0, 18.0)));
-                            ui.add_space(2.0);
-                        }
-                        ui.vertical(|ui| {
-                            ui.heading(egui::RichText::new("ZÉNITH PATCHER").size(19.0).strong().color(egui::Color32::WHITE));
-                            ui.label(egui::RichText::new("Patch de traduction française • Undertale Yellow & Red and Yellow").size(10.0).color(egui::Color32::from_rgb(160, 150, 180)));
-                        });
+                    if let Some(tex) = &self.tex_heart {
+                        ui.image((tex.id(), egui::vec2(20.0, 20.0)));
+                        ui.add_space(8.0);
+                    }
+                    ui.vertical(|ui| {
+                        ui.heading(egui::RichText::new("ZÉNITH PATCHER").size(20.0).strong().color(egui::Color32::WHITE));
+                        ui.label(egui::RichText::new("Patch de traduction française • Undertale Yellow & Red and Yellow").size(11.0).color(egui::Color32::from_rgb(160, 150, 180)));
                     });
                     
-                    // Aligner le stepper complètement à droite de la fenêtre
                     let available_space = ui.available_width();
-                    let stepper_width = 290.0;
+                    let stepper_width = 300.0;
                     if available_space > stepper_width {
                         ui.add_space(available_space - stepper_width);
                     }
@@ -512,15 +513,15 @@ impl egui_software_backend::App for PatcherApp {
                         let avail_w = ui.available_width();
                         let avail_h = ui.available_height();
                         
-                        let card_w = 175.0;
-                        let card_h = 245.0;
-                        let total_w = card_w * 2.0 + 30.0;
+                        let card_w = (avail_w * 0.32).clamp(190.0, 260.0);
+                        let card_h = card_w * 1.38;
+                        let total_w = card_w * 2.0 + 36.0;
                         let margin_x = ((avail_w - total_w) / 2.0).max(0.0);
-                        let top_margin = ((avail_h - (card_h + 60.0)) / 2.0).clamp(4.0, 30.0);
+                        let top_margin = ((avail_h - (card_h + 60.0)) / 2.0).clamp(4.0, 40.0);
 
                         ui.add_space(top_margin);
                         ui.vertical_centered(|ui| {
-                            ui.label(egui::RichText::new("Sélectionnez votre jeu :").size(15.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
+                            ui.label(egui::RichText::new("Sélectionnez votre jeu :").size(16.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
                             ui.add_space(14.0);
                             
                             ui.horizontal(|ui| {
@@ -543,10 +544,14 @@ impl egui_software_backend::App for PatcherApp {
                                 ui.painter().rect_filled(card_rect, 6.0, card_bg);
                                 ui.painter().rect_stroke(card_rect, 6.0, egui::Stroke::new(if is_h { 1.5_f32 } else { 1.0_f32 }, card_stroke), egui::StrokeKind::Outside);
                                 
+                                let img_padding = 12.0;
+                                let img_w = card_w - (img_padding * 2.0);
+                                let img_h = img_w * 1.18;
+                                
                                 if let Some(tex) = &self.tex_uty {
                                     let img_rect = egui::Rect::from_min_size(
-                                        egui::pos2(card_rect.min.x + 12.0, card_rect.min.y + 12.0),
-                                        egui::vec2(151.0, 178.0)
+                                        egui::pos2(card_rect.min.x + img_padding, card_rect.min.y + img_padding),
+                                        egui::vec2(img_w, img_h)
                                     );
                                     ui.painter().image(
                                         tex.id(),
@@ -556,26 +561,26 @@ impl egui_software_backend::App for PatcherApp {
                                     );
                                 }
                                 
-                                let font_id = egui::FontId::proportional(12.5);
+                                let font_id = egui::FontId::new(14.0, egui::FontFamily::Proportional);
                                 let text_color = if is_h { egui::Color32::from_rgb(255, 204, 0) } else { egui::Color32::WHITE };
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + 204.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 22.0),
                                     egui::Align2::CENTER_CENTER,
                                     "Undertale Yellow",
                                     font_id,
                                     text_color,
                                 );
                                 
-                                let sub_font = egui::FontId::proportional(9.5);
+                                let sub_font = egui::FontId::new(11.0, egui::FontFamily::Proportional);
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + 224.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 40.0),
                                     egui::Align2::CENTER_CENTER,
                                     "Version FR v0.5.0",
                                     sub_font,
                                     egui::Color32::from_rgb(160, 155, 175),
                                 );
 
-                                ui.add_space(30.0);
+                                ui.add_space(36.0);
 
                                 // Card 2 : Red & Yellow
                                 let (card_rect, card_resp) = ui.allocate_exact_size(egui::vec2(card_w, card_h), egui::Sense::click());
@@ -596,8 +601,8 @@ impl egui_software_backend::App for PatcherApp {
                                 
                                 if let Some(tex) = &self.tex_ry {
                                     let img_rect = egui::Rect::from_min_size(
-                                        egui::pos2(card_rect.min.x + 12.0, card_rect.min.y + 12.0),
-                                        egui::vec2(151.0, 178.0)
+                                        egui::pos2(card_rect.min.x + img_padding, card_rect.min.y + img_padding),
+                                        egui::vec2(img_w, img_h)
                                     );
                                     ui.painter().image(
                                         tex.id(),
@@ -607,19 +612,19 @@ impl egui_software_backend::App for PatcherApp {
                                     );
                                 }
                                 
-                                let font_id = egui::FontId::proportional(12.5);
+                                let font_id = egui::FontId::new(14.0, egui::FontFamily::Proportional);
                                 let text_color = if is_h { egui::Color32::from_rgb(255, 70, 70) } else { egui::Color32::WHITE };
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + 204.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 22.0),
                                     egui::Align2::CENTER_CENTER,
                                     "Red & Yellow",
                                     font_id,
                                     text_color,
                                 );
                                 
-                                let sub_font = egui::FontId::proportional(9.5);
+                                let sub_font = egui::FontId::new(11.0, egui::FontFamily::Proportional);
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + 224.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 40.0),
                                     egui::Align2::CENTER_CENTER,
                                     "Version FR v2.2.0",
                                     sub_font,
@@ -639,11 +644,11 @@ impl egui_software_backend::App for PatcherApp {
                         let avail_w = ui.available_width();
                         let avail_h = ui.available_height();
                         
-                        let left_w = 145.0;
-                        let right_w = 420.0;
-                        let total_w = left_w + right_w + 24.0;
+                        let left_w = (avail_w * 0.26).clamp(150.0, 220.0);
+                        let right_w = (avail_w * 0.64).clamp(440.0, 680.0);
+                        let total_w = left_w + right_w + 30.0;
                         let margin_x = ((avail_w - total_w) / 2.0).max(0.0);
-                        let top_margin = ((avail_h - 290.0) / 2.0).clamp(4.0, 24.0);
+                        let top_margin = ((avail_h - 320.0) / 2.0).clamp(4.0, 30.0);
 
                         ui.add_space(top_margin);
                         ui.horizontal(|ui| {
@@ -654,28 +659,30 @@ impl egui_software_backend::App for PatcherApp {
                                 .fill(egui::Color32::from_rgb(20, 14, 28))
                                 .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(50, 36, 68)))
                                 .corner_radius(6.0)
-                                .inner_margin(egui::Margin::symmetric(10, 12));
+                                .inner_margin(egui::Margin::symmetric(12, 14));
                             
                             left_frame.show(ui, |ui| {
                                 ui.set_width(left_w);
                                 ui.vertical_centered(|ui| {
                                     if let Some(tex) = game_tex {
-                                        ui.image((tex.id(), egui::vec2(125.0, 160.0)));
+                                        let img_w = left_w - 20.0;
+                                        let img_h = img_w * 1.25;
+                                        ui.image((tex.id(), egui::vec2(img_w, img_h)));
                                         ui.add_space(8.0);
                                     }
-                                    ui.label(egui::RichText::new(project_name).size(13.0).strong().color(egui::Color32::WHITE));
-                                    ui.label(egui::RichText::new(version_str).size(10.0).color(egui::Color32::from_rgb(255, 204, 0)));
+                                    ui.label(egui::RichText::new(project_name).size(14.0).strong().color(egui::Color32::WHITE));
+                                    ui.label(egui::RichText::new(version_str).size(11.0).color(egui::Color32::from_rgb(255, 204, 0)));
                                 });
                             });
 
                             ui.add_space(20.0);
 
-                            // --- Colonne Droite : 3 Options d'installation & Navigation ---
+                            // --- Colonne Droite : Options d'installation ---
                             ui.vertical(|ui| {
                                 ui.set_width(right_w);
-                                ui.label(egui::RichText::new("CHOIX DU MODE D'INSTALLATION").size(14.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
+                                ui.label(egui::RichText::new("CHOIX DU MODE D'INSTALLATION").size(15.0).strong().color(egui::Color32::from_rgb(255, 204, 0)));
                                 ui.add_space(2.0);
-                                ui.label(egui::RichText::new("Sélectionnez l'option correspondant à votre situation :").size(10.5).color(egui::Color32::from_rgb(170, 165, 185)));
+                                ui.label(egui::RichText::new("Sélectionnez l'option correspondant à votre situation :").size(11.0).color(egui::Color32::from_rgb(170, 165, 185)));
                                 ui.add_space(10.0);
 
                                 let is_uty = state.selected_project == Some(GameProject::UndertaleYellow);
@@ -687,9 +694,9 @@ impl egui_software_backend::App for PatcherApp {
                                     ui,
                                     opt1_title,
                                     opt1_desc,
-                                    !is_uty,
+                                    false,
                                     right_w,
-                                    52.0,
+                                    60.0,
                                 );
                                 if opt1_resp.clicked() {
                                     state.auto_install_uty = false;
@@ -707,7 +714,7 @@ impl egui_software_backend::App for PatcherApp {
                                     "Vérifie votre version installée et applique le dernier correctif disponible.",
                                     false,
                                     right_w,
-                                    52.0,
+                                    60.0,
                                 );
                                 if opt2_resp.clicked() {
                                     state.auto_install_uty = false;
@@ -716,23 +723,26 @@ impl egui_software_backend::App for PatcherApp {
                                     start_game_detection(&mut state);
                                 }
 
-                                if is_uty {
-                                    ui.add_space(8.0);
+                                ui.add_space(8.0);
 
-                                    // Option 3 : Installation complète autonome (spécifique à Undertale Yellow)
-                                    let opt3_resp = custom_option_card(
-                                        ui,
-                                        "3. Télécharger & installer le jeu complet",
-                                        "Installe la version complète autonome déjà traduite en français (prêt à jouer).",
-                                        true,
-                                        right_w,
-                                        52.0,
-                                    );
-                                    if opt3_resp.clicked() {
-                                        state.auto_install_uty = true;
-                                        state.is_update_mode = false;
-                                        state.current_step = Step::InstallRepack;
-                                    }
+                                // Option 3 : Installation complète autonome
+                                let opt3_desc = if is_uty {
+                                    "Télécharge et installe la version complète Undertale Yellow en français (prêt à jouer)."
+                                } else {
+                                    "Télécharge et installe le jeu complet autonome Undertale Red & Yellow FR (prêt à jouer)."
+                                };
+                                let opt3_resp = custom_option_card(
+                                    ui,
+                                    "3. Télécharger & installer le jeu complet",
+                                    opt3_desc,
+                                    true,
+                                    right_w,
+                                    60.0,
+                                );
+                                if opt3_resp.clicked() {
+                                    state.auto_install_uty = true;
+                                    state.is_update_mode = false;
+                                    state.current_step = Step::InstallRepack;
                                 }
 
                                 ui.add_space(14.0);
@@ -1219,9 +1229,9 @@ fn get_github_repack_url(project: GameProject) -> Result<String, String> {
         }
         GameProject::RedAndYellow => {
             if cfg!(windows) {
-                Ok("https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.1.4/Undertale.Red.and.Yellow.v2.1.4.FR.Windows.zip".to_string())
+                Ok("https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/Undertale.Red.and.Yellow.v2.1.4.FR.Windows.zip".to_string())
             } else {
-                Ok("https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.1.4/Undertale.Red.and.Yellow.v2.1.4.FR.Linux.zip".to_string())
+                Ok("https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/Undertale.Red.and.Yellow.v2.1.4.FR.Linux.zip".to_string())
             }
         }
     }
@@ -1451,12 +1461,17 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
         }
 
         if !is_local_patch {
+            let original_file_size = fs::metadata(&original_file).map(|m| m.len()).unwrap_or(0);
             let patch_url = match project {
                 GameProject::UndertaleYellow => "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/uty-fr-v0.5.0/uty-fr-v0.5.0.xdelta".to_string(),
                 GameProject::RedAndYellow => {
                     if is_unx {
                         "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-linux-v2.1.4.xdelta".to_string()
+                    } else if original_file_size < 75_000_000 {
+                        // Fichier source = Undertale de base non moddé (~62 Mo)
+                        "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-vanilla-v2.2.0.xdelta".to_string()
                     } else {
+                        // Fichier source = Version Red and Yellow existante (~92 Mo)
                         "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-v2.2.0.xdelta".to_string()
                     }
                 }
@@ -1966,9 +1981,8 @@ fn main() {
     let mut settings = SoftwareBackendAppConfiguration::new()
         .inner_size(Some(egui::vec2(760.0, 500.0)))
         .min_inner_size(Some(egui::vec2(760.0, 500.0)))
-        .max_inner_size(Some(egui::vec2(760.0, 500.0)))
         .title(Some("Zenith Patcher".to_string()))
-        .resizable(Some(false));
+        .resizable(Some(true));
 
     if let Some(icon) = icon {
         settings = settings.icon(Some(icon));
