@@ -5,7 +5,8 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use eframe::egui;
+use egui;
+use egui_software_backend::{SoftwareBackend, SoftwareBackendAppConfiguration};
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
@@ -139,21 +140,21 @@ struct PatcherApp {
 }
 
 impl PatcherApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        setup_retro_style(&cc.egui_ctx);
+    fn new(context: egui::Context) -> Self {
+        setup_retro_style(&context);
         
         let state = Arc::new(Mutex::new(AppState::default()));
         
         // Charger les textures
-        let tex_uty = load_image_bytes(&cc.egui_ctx, "jacket_uty", JACKET_UTY);
-        let tex_ry = load_image_bytes(&cc.egui_ctx, "jacket_ry", JACKET_RY);
-        let tex_bg = load_image_bytes(&cc.egui_ctx, "bg_image", BG_IMAGE_BYTES);
-        let tex_discord = load_image_bytes(&cc.egui_ctx, "discord_icon", DISCORD_ICON_BYTES);
-        let tex_heart = load_image_bytes(&cc.egui_ctx, "app_icon", APP_ICON_BYTES);
+        let tex_uty = load_image_bytes(&context, "jacket_uty", JACKET_UTY);
+        let tex_ry = load_image_bytes(&context, "jacket_ry", JACKET_RY);
+        let tex_bg = load_image_bytes(&context, "bg_image", BG_IMAGE_BYTES);
+        let tex_discord = load_image_bytes(&context, "discord_icon", DISCORD_ICON_BYTES);
+        let tex_heart = load_image_bytes(&context, "app_icon", APP_ICON_BYTES);
 
         // Vérification des mises à jour en arrière-plan
         let state_clone = Arc::clone(&state);
-        let ctx_clone = cc.egui_ctx.clone();
+        let ctx_clone = context.clone();
         thread::spawn(move || {
             if let Ok(response) = minreq::get(VERSIONS_URL).send() {
                 if response.status_code == 200 {
@@ -173,19 +174,19 @@ impl PatcherApp {
 fn setup_retro_style(ctx: &egui::Context) {
     ctx.set_pixels_per_point(1.0);
 
-    let mut style = (*ctx.style()).clone();
+    let mut style = (*ctx.global_style()).clone();
     
     style.visuals.dark_mode = true;
     style.visuals.window_fill = egui::Color32::BLACK;
     style.visuals.panel_fill = egui::Color32::BLACK;
     
-    style.visuals.window_rounding = 4.0.into();
-    style.visuals.menu_rounding = 4.0.into();
-    style.visuals.widgets.noninteractive.rounding = 4.0.into();
-    style.visuals.widgets.inactive.rounding = 4.0.into();
-    style.visuals.widgets.hovered.rounding = 4.0.into();
-    style.visuals.widgets.active.rounding = 4.0.into();
-    style.visuals.widgets.open.rounding = 4.0.into();
+    style.visuals.window_corner_radius = egui::CornerRadius::same(4);
+    style.visuals.menu_corner_radius = egui::CornerRadius::same(4);
+    style.visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(4);
+    style.visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(4);
+    style.visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(4);
+    style.visuals.widgets.active.corner_radius = egui::CornerRadius::same(4);
+    style.visuals.widgets.open.corner_radius = egui::CornerRadius::same(4);
     style.spacing.button_padding = egui::vec2(12.0, 6.0);
     
     style.visuals.widgets.noninteractive.bg_fill = egui::Color32::from_black_alpha(200);
@@ -205,12 +206,12 @@ fn setup_retro_style(ctx: &egui::Context) {
     style.visuals.selection.bg_fill = egui::Color32::from_rgb(255, 204, 0);
     style.visuals.selection.stroke = egui::Stroke::new(1.0_f32, egui::Color32::BLACK);
 
-    ctx.set_style(style);
+    ctx.set_global_style(style);
 
     let mut fonts = egui::FontDefinitions::default();
     fonts.font_data.insert(
         "DeterminationMono".to_owned(),
-        egui::FontData::from_static(include_bytes!("../assets/DeterminationMono.ttf")),
+        egui::FontData::from_static(include_bytes!("../assets/DeterminationMono.ttf")).into(),
     );
     
     fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap()
@@ -233,16 +234,16 @@ fn load_image_bytes(ctx: &egui::Context, name: &str, bytes: &[u8]) -> Option<egu
     }
 }
 
-// Redimensionner l'icône de l'application Pop!_OS pour qu'elle soit carrée (64x64)
-fn load_app_icon(bytes: &[u8]) -> Option<egui::IconData> {
+// Redimensionner l'icône de l'application pour qu'elle soit carrée (64x64)
+fn load_app_icon_data(bytes: &[u8]) -> Option<std::sync::Arc<egui::IconData>> {
     if let Ok(img) = image::load_from_memory(bytes) {
         let img = img.resize_exact(64, 64, image::imageops::FilterType::Nearest);
         let img = img.to_rgba8();
-        Some(egui::IconData {
+        Some(std::sync::Arc::new(egui::IconData {
             rgba: img.into_raw(),
             width: 64,
             height: 64,
-        })
+        }))
     } else {
         None
     }
@@ -298,7 +299,7 @@ fn undertale_btn(ui: &mut egui::Ui, text: &str, is_primary: bool, size: egui::Ve
     };
     
     ui.painter().rect_filled(rect, 4.0, bg_color);
-    ui.painter().rect_stroke(rect, 4.0, egui::Stroke::new(if is_hovered { 1.5_f32 } else { 1.0_f32 }, stroke_color));
+    ui.painter().rect_stroke(rect, 4.0, egui::Stroke::new(if is_hovered { 1.5_f32 } else { 1.0_f32 }, stroke_color), egui::StrokeKind::Outside);
     
     let font_id = egui::FontId::proportional(12.0);
     ui.painter().text(
@@ -369,7 +370,7 @@ fn custom_option_card(
     };
     
     ui.painter().rect_filled(rect, 6.0, bg_color);
-    ui.painter().rect_stroke(rect, 6.0, egui::Stroke::new(if is_hovered { 1.5_f32 } else { 1.0_f32 }, stroke_color));
+    ui.painter().rect_stroke(rect, 6.0, egui::Stroke::new(if is_hovered { 1.5_f32 } else { 1.0_f32 }, stroke_color), egui::StrokeKind::Outside);
     
     // Titre
     let title_font = egui::FontId::proportional(12.5);
@@ -394,8 +395,9 @@ fn custom_option_card(
     response
 }
 
-impl eframe::App for PatcherApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+impl egui_software_backend::App for PatcherApp {
+    fn ui(&mut self, ui: &mut egui::Ui, _backend: &mut SoftwareBackend) {
+        let ctx = ui.ctx().clone();
         let mut state = self.state.lock().unwrap();
         
         if state.is_patching {
@@ -403,14 +405,14 @@ impl eframe::App for PatcherApp {
         }
 
         // --- 1. Barre de navigation inférieure fixe (Footer) ---
-        let bottom_bar_frame = egui::Frame::none()
+        let bottom_bar_frame = egui::Frame::NONE
             .fill(egui::Color32::from_rgb(12, 8, 18))
             .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(32, 22, 46)))
-            .inner_margin(egui::Margin::symmetric(24.0, 10.0));
+            .inner_margin(egui::Margin::symmetric(24, 10));
 
         egui::TopBottomPanel::bottom("bottom_bar")
             .frame(bottom_bar_frame)
-            .show(ctx, |ui| {
+            .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("Zénith Patcher v1.0.0").size(11.0).color(egui::Color32::from_rgb(140, 135, 155)));
                     
@@ -464,8 +466,8 @@ impl eframe::App for PatcherApp {
             });
 
         // --- 2. Panel Central ---
-        let panel_frame = egui::Frame::none().fill(egui::Color32::from_rgb(14, 9, 21));
-        egui::CentralPanel::default().frame(panel_frame).show(ctx, |ui| {
+        let panel_frame = egui::Frame::NONE.fill(egui::Color32::from_rgb(14, 9, 21));
+        egui::CentralPanel::default().frame(panel_frame).show_inside(ui, |ui| {
             if let Some(bg_tex) = &self.tex_bg {
                 let rect = ui.max_rect();
                 ui.painter().image(
@@ -476,8 +478,8 @@ impl eframe::App for PatcherApp {
                 );
             }
 
-            egui::Frame::none()
-                .inner_margin(egui::Margin::symmetric(28.0, 16.0))
+            egui::Frame::NONE
+                .inner_margin(egui::Margin::symmetric(28, 16))
                 .show(ui, |ui| {
                 
                 // En-tête et Stepper de navigation (Ordre 1 -> 2 -> 3 -> 4)
@@ -541,7 +543,7 @@ impl eframe::App for PatcherApp {
                                 let card_stroke = if is_h { egui::Color32::from_rgb(255, 204, 0) } else { egui::Color32::from_rgb(50, 36, 68) };
                                 
                                 ui.painter().rect_filled(card_rect, 6.0, card_bg);
-                                ui.painter().rect_stroke(card_rect, 6.0, egui::Stroke::new(if is_h { 1.5_f32 } else { 1.0_f32 }, card_stroke));
+                                ui.painter().rect_stroke(card_rect, 6.0, egui::Stroke::new(if is_h { 1.5_f32 } else { 1.0_f32 }, card_stroke), egui::StrokeKind::Outside);
                                 
                                 if let Some(tex) = &self.tex_uty {
                                     let img_rect = egui::Rect::from_min_size(
@@ -592,7 +594,7 @@ impl eframe::App for PatcherApp {
                                 let card_stroke = if is_h { egui::Color32::from_rgb(255, 70, 70) } else { egui::Color32::from_rgb(50, 36, 68) };
                                 
                                 ui.painter().rect_filled(card_rect, 6.0, card_bg);
-                                ui.painter().rect_stroke(card_rect, 6.0, egui::Stroke::new(if is_h { 1.5_f32 } else { 1.0_f32 }, card_stroke));
+                                ui.painter().rect_stroke(card_rect, 6.0, egui::Stroke::new(if is_h { 1.5_f32 } else { 1.0_f32 }, card_stroke), egui::StrokeKind::Outside);
                                 
                                 if let Some(tex) = &self.tex_ry {
                                     let img_rect = egui::Rect::from_min_size(
@@ -650,11 +652,11 @@ impl eframe::App for PatcherApp {
                             ui.add_space(margin_x);
                             
                             // --- Colonne Gauche : Jaquette & Infos ---
-                            let left_frame = egui::Frame::none()
+                            let left_frame = egui::Frame::NONE
                                 .fill(egui::Color32::from_rgb(20, 14, 28))
                                 .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(50, 36, 68)))
-                                .rounding(6.0)
-                                .inner_margin(egui::Margin::symmetric(10.0, 12.0));
+                                .corner_radius(6.0)
+                                .inner_margin(egui::Margin::symmetric(10, 12));
                             
                             left_frame.show(ui, |ui| {
                                 ui.set_width(left_w);
@@ -758,11 +760,11 @@ impl eframe::App for PatcherApp {
                                 ui.horizontal(|ui| {
                                     ui.add_space(margin);
                                     
-                                    let path_box = egui::Frame::none()
+                                    let path_box = egui::Frame::NONE
                                         .fill(egui::Color32::from_rgb(20, 14, 28))
                                         .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(50, 38, 70)))
-                                        .rounding(4.0)
-                                        .inner_margin(egui::Margin::symmetric(12.0, 8.0));
+                                        .corner_radius(4.0)
+                                        .inner_margin(egui::Margin::symmetric(12, 8));
                                     
                                     path_box.show(ui, |ui| {
                                         ui.add_sized([380.0, 20.0], egui::Label::new(
@@ -854,11 +856,11 @@ impl eframe::App for PatcherApp {
                             ui.horizontal(|ui| {
                                 ui.add_space(margin);
                                 
-                                let path_box = egui::Frame::none()
+                                let path_box = egui::Frame::NONE
                                     .fill(egui::Color32::from_rgb(20, 14, 28))
                                     .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(50, 38, 70)))
-                                    .rounding(4.0)
-                                    .inner_margin(egui::Margin::symmetric(12.0, 8.0));
+                                    .corner_radius(4.0)
+                                    .inner_margin(egui::Margin::symmetric(12, 8));
                                 
                                 path_box.show(ui, |ui| {
                                     ui.add_sized([380.0, 20.0], egui::Label::new(
@@ -1868,7 +1870,7 @@ fn draw_custom_progress_bar(ui: &mut egui::Ui, progress: f32) {
         let (rect, _response) = ui.allocate_exact_size(egui::vec2(width, height), egui::Sense::hover());
         
         // Dessiner la bordure blanche
-        ui.painter().rect_stroke(rect, 0.0, egui::Stroke::new(2.0_f32, egui::Color32::WHITE));
+        ui.painter().rect_stroke(rect, 0.0, egui::Stroke::new(2.0_f32, egui::Color32::WHITE), egui::StrokeKind::Outside);
         
         // Rectangle interne
         let inner_rect = rect.shrink(3.0);
@@ -1925,39 +1927,7 @@ fn ensure_linux_desktop_entry() {
 #[cfg(not(target_os = "linux"))]
 fn ensure_linux_desktop_entry() {}
 
-fn run_app(renderer: eframe::Renderer, icon: Option<egui::IconData>) -> eframe::Result<()> {
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([760.0, 500.0])
-            .with_resizable(true)
-            .with_maximize_button(true)
-            .with_decorations(true)
-            .with_icon(icon.unwrap_or_default())
-            .with_title("Zenith Patcher"),
-        renderer,
-        wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
-            supported_backends: eframe::wgpu::Backends::all(),
-            power_preference: eframe::wgpu::PowerPreference::None,
-            device_descriptor: std::sync::Arc::new(|_adapter| {
-                eframe::wgpu::DeviceDescriptor {
-                    label: Some("zenith_patcher_wgpu"),
-                    required_features: eframe::wgpu::Features::empty(),
-                    required_limits: eframe::wgpu::Limits::downlevel_defaults(),
-                }
-            }),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-    
-    eframe::run_native(
-        "zenith-patcher",
-        options,
-        Box::new(|cc| Ok(Box::new(PatcherApp::new(cc)))),
-    )
-}
-
-fn main() -> eframe::Result<()> {
+fn main() {
     #[cfg(target_os = "windows")]
     {
         // Enregistrer les panics dans un fichier log
@@ -1987,25 +1957,26 @@ fn main() -> eframe::Result<()> {
     // S'assurer de la présence du lanceur desktop et de l'icône système sous Linux
     ensure_linux_desktop_entry();
 
-    // Icône de l'application (coeur rouge d'Undertale) redimensionnée carré 64x64
-    let icon = load_app_icon(APP_ICON_BYTES);
+    // Configuration du backend logiciel (rendu CPU pur, aucun GPU requis)
+    let icon = load_app_icon_data(APP_ICON_BYTES);
+    let mut settings = SoftwareBackendAppConfiguration::new()
+        .inner_size(Some(egui::vec2(760.0, 500.0)))
+        .title(Some("Zenith Patcher".to_string()))
+        .resizable(Some(true));
 
-    #[cfg(target_os = "windows")]
-    let final_result = run_app(eframe::Renderer::Wgpu, icon);
-
-    #[cfg(not(target_os = "windows"))]
-    let final_result = run_app(eframe::Renderer::Glow, icon);
-
-    if let Err(ref e) = final_result {
-        if let Ok(mut exe_dir) = std::env::current_exe() {
-            exe_dir.pop();
-            let _ = std::fs::write(exe_dir.join("zenith_patcher_error.txt"), format!("EFRAME ERROR: {:?}", e));
-        } else {
-            let _ = std::fs::write("zenith_patcher_error.txt", format!("EFRAME ERROR: {:?}", e));
-        }
+    if let Some(icon) = icon {
+        settings = settings.icon(Some(icon));
     }
 
-    final_result
+    if let Err(e) = egui_software_backend::run_app_with_software_backend(settings, PatcherApp::new) {
+        let error_msg = format!("RENDER ERROR: {:?}\n", e);
+        if let Ok(mut exe_dir) = std::env::current_exe() {
+            exe_dir.pop();
+            let _ = std::fs::write(exe_dir.join("zenith_patcher_error.txt"), &error_msg);
+        } else {
+            let _ = std::fs::write("zenith_patcher_error.txt", &error_msg);
+        }
+        eprintln!("{}", error_msg);
+    }
 }
-
 
