@@ -230,17 +230,24 @@ fn setup_retro_style(ctx: &egui::Context) {
     ctx.set_global_style(style);
 
     let mut fonts = egui::FontDefinitions::default();
-    let mut font_data = egui::FontData::from_static(include_bytes!("../assets/DeterminationMono.ttf"));
+    let mut font_data = egui::FontData::from_static(include_bytes!("../assets/DTM-Sans.otf"));
     font_data.tweak.scale = 1.0;
     fonts.font_data.insert(
-        "DeterminationMono".to_owned(),
+        "DTMSans".to_owned(),
         font_data.into(),
     );
     
+    let mut mono_data = egui::FontData::from_static(include_bytes!("../assets/DTM-Mono.otf"));
+    mono_data.tweak.scale = 1.0;
+    fonts.font_data.insert(
+        "DTMMono".to_owned(),
+        mono_data.into(),
+    );
+    
     fonts.families.get_mut(&egui::FontFamily::Proportional).unwrap()
-        .insert(0, "DeterminationMono".to_owned());
+        .insert(0, "DTMSans".to_owned());
     fonts.families.get_mut(&egui::FontFamily::Monospace).unwrap()
-        .insert(0, "DeterminationMono".to_owned());
+        .insert(0, "DTMMono".to_owned());
         
     ctx.set_fonts(fonts);
 }
@@ -489,9 +496,23 @@ impl egui_software_backend::App for PatcherApp {
         egui::CentralPanel::default().frame(panel_frame).show_inside(ui, |ui| {
             if let Some(bg_tex) = &self.tex_bg {
                 let rect = ui.max_rect();
+                let img_size = bg_tex.size_vec2();
+                let img_aspect = img_size.x / img_size.y;
+                let win_aspect = rect.width() / rect.height();
+                
+                let draw_rect = if win_aspect > img_aspect {
+                    let h = rect.width() / img_aspect;
+                    let y_offset = (h - rect.height()) / 2.0;
+                    egui::Rect::from_min_size(egui::pos2(rect.min.x, rect.min.y - y_offset), egui::vec2(rect.width(), h))
+                } else {
+                    let w = rect.height() * img_aspect;
+                    let x_offset = (w - rect.width()) / 2.0;
+                    egui::Rect::from_min_size(egui::pos2(rect.min.x - x_offset, rect.min.y), egui::vec2(w, rect.height()))
+                };
+                
                 ui.painter().image(
                     bg_tex.id(),
-                    rect,
+                    draw_rect,
                     egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
                     egui::Color32::from_white_alpha(75)
                 );
@@ -530,11 +551,11 @@ impl egui_software_backend::App for PatcherApp {
                         let avail_w = ui.available_width();
                         let avail_h = ui.available_height();
                         
-                        let card_w = (avail_w * 0.32).clamp(190.0, 260.0);
-                        let card_h = card_w * 1.38;
+                        let card_w = (avail_w * 0.36).clamp(210.0, 310.0);
+                        let card_h = (card_w * 1.35).min(avail_h - 90.0).max(270.0);
                         let total_w = card_w * 2.0 + 36.0;
                         let margin_x = ((avail_w - total_w) / 2.0).max(0.0);
-                        let top_margin = ((avail_h - (card_h + 60.0)) / 2.0).clamp(4.0, 40.0);
+                        let top_margin = ((avail_h - (card_h + 50.0)) / 2.0).clamp(10.0, 45.0);
 
                         ui.add_space(top_margin);
                         ui.vertical_centered(|ui| {
@@ -663,11 +684,11 @@ impl egui_software_backend::App for PatcherApp {
                         let avail_w = ui.available_width();
                         let avail_h = ui.available_height();
                         
-                        let left_w = (avail_w * 0.28).clamp(160.0, 220.0);
-                        let right_w = (avail_w * 0.65).clamp(460.0, 680.0);
+                        let left_w = (avail_w * 0.28).clamp(170.0, 240.0);
+                        let right_w = (avail_w - left_w - 50.0).clamp(460.0, 750.0);
                         let total_w = left_w + right_w + 30.0;
                         let margin_x = ((avail_w - total_w) / 2.0).max(0.0);
-                        let top_margin = ((avail_h - 320.0) / 2.0).clamp(4.0, 30.0);
+                        let top_margin = ((avail_h - 340.0) / 2.0).clamp(10.0, 40.0);
 
                         ui.add_space(top_margin);
                         ui.horizontal(|ui| {
@@ -2057,41 +2078,15 @@ fn main() {
     ensure_linux_desktop_entry();
 
     // Configuration du backend logiciel (rendu CPU pur, aucun GPU requis)
-    let icon = load_app_icon_data(APP_ICON_BYTES);
+    let icon = load_app_icon_data(APP_ICON_PNG_BYTES);
     let mut settings = SoftwareBackendAppConfiguration::new()
-        .inner_size(Some(egui::vec2(840.0, 540.0)))
-        .min_inner_size(Some(egui::vec2(840.0, 540.0)))
-        .max_inner_size(Some(egui::vec2(840.0, 540.0)))
+        .inner_size(Some(egui::vec2(860.0, 550.0)))
+        .min_inner_size(Some(egui::vec2(780.0, 500.0)))
         .title(Some("Zenith Patcher".to_string()))
-        .resizable(Some(false));
+        .resizable(Some(true));
 
     if let Some(icon) = icon {
         settings = settings.icon(Some(icon));
-    }
-
-    // Activation asynchrone du Dark Mode pour la barre de titre Windows (DWM Win32)
-    #[cfg(windows)]
-    {
-        std::thread::spawn(|| {
-            #[link(name = "dwmapi")]
-            extern "system" {
-                fn DwmSetWindowAttribute(hwnd: isize, dwAttribute: u32, pvAttribute: *const std::ffi::c_void, cbAttribute: u32) -> i32;
-            }
-            #[link(name = "user32")]
-            extern "system" {
-                fn FindWindowW(lpClassName: *const u16, lpWindowName: *const u16) -> isize;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(200));
-            let title: Vec<u16> = "Zenith Patcher\0".encode_utf16().collect();
-            let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
-            if hwnd != 0 {
-                let dark: i32 = 1;
-                unsafe {
-                    DwmSetWindowAttribute(hwnd, 20, &dark as *const _ as _, 4);
-                    DwmSetWindowAttribute(hwnd, 19, &dark as *const _ as _, 4);
-                }
-            }
-        });
     }
 
     if let Err(e) = egui_software_backend::run_app_with_software_backend(settings, PatcherApp::new) {
