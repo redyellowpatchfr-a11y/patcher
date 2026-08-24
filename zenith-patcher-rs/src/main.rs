@@ -1991,23 +1991,10 @@ fn main() -> eframe::Result<()> {
     let icon = load_app_icon(APP_ICON_BYTES);
 
     #[cfg(target_os = "windows")]
-    let result = run_app(eframe::Renderer::Wgpu, icon.clone());
+    let final_result = run_app(eframe::Renderer::Wgpu, icon);
 
     #[cfg(not(target_os = "windows"))]
-    let result = run_app(eframe::Renderer::Glow, icon.clone());
-
-    let final_result = if result.is_err() {
-        #[cfg(target_os = "windows")]
-        {
-            run_app(eframe::Renderer::Glow, icon)
-        }
-        #[cfg(not(target_os = "windows"))]
-        {
-            run_app(eframe::Renderer::Wgpu, icon)
-        }
-    } else {
-        result
-    };
+    let final_result = run_app(eframe::Renderer::Glow, icon);
 
     if let Err(ref e) = final_result {
         if let Ok(mut exe_dir) = std::env::current_exe() {
