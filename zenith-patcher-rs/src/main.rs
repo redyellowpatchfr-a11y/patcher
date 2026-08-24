@@ -172,8 +172,6 @@ impl PatcherApp {
 }
 
 fn setup_retro_style(ctx: &egui::Context) {
-    ctx.set_pixels_per_point(1.0);
-
     let mut style = (*ctx.global_style()).clone();
     
     style.visuals.dark_mode = true;
@@ -474,7 +472,7 @@ impl egui_software_backend::App for PatcherApp {
                     bg_tex.id(),
                     rect,
                     egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                    egui::Color32::from_white_alpha(20)
+                    egui::Color32::from_white_alpha(75)
                 );
             }
 
@@ -680,14 +678,18 @@ impl egui_software_backend::App for PatcherApp {
                                 ui.label(egui::RichText::new("Sélectionnez l'option correspondant à votre situation :").size(10.5).color(egui::Color32::from_rgb(170, 165, 185)));
                                 ui.add_space(10.0);
 
+                                let is_uty = state.selected_project == Some(GameProject::UndertaleYellow);
+
                                 // Option 1 : Traduire un jeu existant
+                                let opt1_title = if is_uty { "1. Traduire un jeu déjà installé" } else { "1. Traduire votre jeu Undertale existant" };
+                                let opt1_desc = if is_uty { "Détecte votre installation Undertale Yellow et applique le patch français." } else { "Détecte votre installation Steam/GOG/locale d'Undertale et applique le patch Red & Yellow FR." };
                                 let opt1_resp = custom_option_card(
                                     ui,
-                                    "1. Traduire un jeu déjà installé",
-                                    "Détecte votre installation Steam ou locale et applique le patch français.",
-                                    false,
+                                    opt1_title,
+                                    opt1_desc,
+                                    !is_uty,
                                     right_w,
-                                    50.0,
+                                    52.0,
                                 );
                                 if opt1_resp.clicked() {
                                     state.auto_install_uty = false;
@@ -705,7 +707,7 @@ impl egui_software_backend::App for PatcherApp {
                                     "Vérifie votre version installée et applique le dernier correctif disponible.",
                                     false,
                                     right_w,
-                                    50.0,
+                                    52.0,
                                 );
                                 if opt2_resp.clicked() {
                                     state.auto_install_uty = false;
@@ -714,21 +716,23 @@ impl egui_software_backend::App for PatcherApp {
                                     start_game_detection(&mut state);
                                 }
 
-                                ui.add_space(8.0);
+                                if is_uty {
+                                    ui.add_space(8.0);
 
-                                // Option 3 : Installation complète autonome
-                                let opt3_resp = custom_option_card(
-                                    ui,
-                                    "3. Télécharger & installer le jeu complet",
-                                    "Installe la version complète autonome déjà traduite en français (prêt à jouer).",
-                                    true,
-                                    right_w,
-                                    50.0,
-                                );
-                                if opt3_resp.clicked() {
-                                    state.auto_install_uty = true;
-                                    state.is_update_mode = false;
-                                    state.current_step = Step::InstallRepack;
+                                    // Option 3 : Installation complète autonome (spécifique à Undertale Yellow)
+                                    let opt3_resp = custom_option_card(
+                                        ui,
+                                        "3. Télécharger & installer le jeu complet",
+                                        "Installe la version complète autonome déjà traduite en français (prêt à jouer).",
+                                        true,
+                                        right_w,
+                                        52.0,
+                                    );
+                                    if opt3_resp.clicked() {
+                                        state.auto_install_uty = true;
+                                        state.is_update_mode = false;
+                                        state.current_step = Step::InstallRepack;
+                                    }
                                 }
 
                                 ui.add_space(14.0);
@@ -1961,8 +1965,10 @@ fn main() {
     let icon = load_app_icon_data(APP_ICON_BYTES);
     let mut settings = SoftwareBackendAppConfiguration::new()
         .inner_size(Some(egui::vec2(760.0, 500.0)))
+        .min_inner_size(Some(egui::vec2(760.0, 500.0)))
+        .max_inner_size(Some(egui::vec2(760.0, 500.0)))
         .title(Some("Zenith Patcher".to_string()))
-        .resizable(Some(true));
+        .resizable(Some(false));
 
     if let Some(icon) = icon {
         settings = settings.icon(Some(icon));

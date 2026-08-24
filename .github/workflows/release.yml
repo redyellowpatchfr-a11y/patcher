@@ -55,6 +55,14 @@ jobs:
             mv zenith-patcher-rs/target/${{ matrix.platform.target }}/release/zenith-patcher-rs ${{ matrix.platform.bin-name }}
           fi
 
+      - name: Compress binary (UPX)
+        shell: bash
+        run: |
+          if [ "${{ matrix.platform.runs-on }}" = "windows-latest" ]; then
+            choco install upx --no-progress
+            upx --best --lzma ${{ matrix.platform.bin-name }}
+          fi
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:

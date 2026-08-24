@@ -5,7 +5,7 @@
       "patch_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/uty-fr-v0.5.0/uty-fr-v0.5.0.xdelta",
       "repack_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/uty-fr-v0.5.0/Undertale.Yellow.v1_1PatchFr.zip",
       "date": "2026-07-12",
-      "changelog": "Premi\u00e8re version stable du patch de traduction fran\u00e7aise d'Undertale Yellow par Arvix.",
+      "changelog": "Première version stable du patch de traduction française d'Undertale Yellow par Arvix.",
       "patch": {
         "filename": "uty-fr-v0.5.0.xdelta",
         "sha256": "c227defe6d78994e3f1b9323a0c462a91906049bbf381930ca6964eeda23dfa3",
@@ -18,16 +18,16 @@
       "patch_linux_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-linux-v2.1.4.xdelta",
       "assets_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-assets.zip",
       "date": "2026-08-24",
-      "changelog": "Patch officiel Undertale Red & Yellow v2.1.4 FR (Windows & Linux). Fusion compl\u00e8te et sans bug.",
+      "changelog": "Patch officiel Undertale Red & Yellow v2.1.4 FR (Windows & Linux). Fusion complète et sans bug.",
       "patch": {
-        "filename": "ry-fr-v2.1.4.xdelta",
-        "sha256": "a2d95ec752f35bacda824069a3ae09e87e26b1d2612658c6b744e10b52b0df2a",
-        "size": 977222
+        "filename": "ry-fr-v2.2.0.xdelta",
+        "sha256": "479e4fe79ce07d7e0020703e3f4126a386faedc0927c41aebbb107d7c5403f78",
+        "size": 982878
       },
       "patch_linux": {
         "filename": "ry-fr-linux-v2.1.4.xdelta",
-        "sha256": "4c7066033a20711efa9b3bc1232692f2ba30de3740f1c15de2b3d78c48f5fa91",
-        "size": 348702
+        "sha256": "a7d725116b0a6b8cf682a4c61efc5f7762bfa197f69cd6b072aae785b36b99fb",
+        "size": 351360
       }
     }
   }
