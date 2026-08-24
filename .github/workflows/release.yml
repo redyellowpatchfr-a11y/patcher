@@ -61,6 +61,10 @@ jobs:
           if [ "${{ matrix.platform.runs-on }}" = "windows-latest" ]; then
             choco install upx --no-progress
             upx --best --lzma ${{ matrix.platform.bin-name }}
+          else
+            sudo apt-get update && sudo apt-get install -y upx
+            upx --best --lzma ${{ matrix.platform.bin-name }}
+            chmod +x ${{ matrix.platform.bin-name }}
           fi
 
       - name: Upload Artifact

@@ -26,6 +26,7 @@ const JACKET_RY: &[u8] = include_bytes!("../assets/undertale-red-yellow.webp");
 const BG_IMAGE_BYTES: &[u8] = include_bytes!("../assets/banniere_UTY.webp");
 const DISCORD_ICON_BYTES: &[u8] = include_bytes!("../assets/discord.webp");
 const APP_ICON_BYTES: &[u8] = include_bytes!("../assets/coeur.webp");
+const APP_ICON_PNG_BYTES: &[u8] = include_bytes!("../assets/coeur.png");
 
 // URL du versions.json sur GitHub (source de vérité pour les mises à jour)
 const VERSIONS_URL: &str = "https://raw.githubusercontent.com/redyellowpatchfr-a11y/patcher/main/versions.json";
@@ -104,10 +105,24 @@ struct AppState {
     final_is_unx: bool,
 }
 
+fn get_default_install_dir(project: GameProject) -> PathBuf {
+    let home = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")).unwrap_or_default();
+    let desktop = PathBuf::from(&home).join("Desktop");
+    let base = if desktop.exists() {
+        desktop
+    } else {
+        let bureau = PathBuf::from(&home).join("Bureau");
+        if bureau.exists() { bureau } else { PathBuf::from(&home).join("Games") }
+    };
+    match project {
+        GameProject::UndertaleYellow => base.join("Undertale Yellow FR"),
+        GameProject::RedAndYellow => base.join("Undertale Red and Yellow FR"),
+    }
+}
+
 impl Default for AppState {
     fn default() -> Self {
-        let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-        let default_install = PathBuf::from(home).join("Games").join("UndertaleYellowFR");
+        let default_install = get_default_install_dir(GameProject::RedAndYellow);
         Self {
             current_step: Step::MainSelection,
             selected_project: None,
@@ -491,7 +506,7 @@ impl egui_software_backend::App for PatcherApp {
                         ui.add_space(8.0);
                     }
                     ui.vertical(|ui| {
-                        ui.heading(egui::RichText::new("ZÉNITH PATCHER").size(20.0).strong().color(egui::Color32::WHITE));
+                        ui.heading(egui::RichText::new("ZENITH PATCHER").size(20.0).strong().color(egui::Color32::WHITE));
                         ui.label(egui::RichText::new("Patch de traduction française • Undertale Yellow & Red and Yellow").size(11.0).color(egui::Color32::from_rgb(160, 150, 180)));
                     });
                     
@@ -534,6 +549,7 @@ impl egui_software_backend::App for PatcherApp {
                                 }
                                 if card_resp.clicked() {
                                     state.selected_project = Some(GameProject::UndertaleYellow);
+                                    state.install_dir = get_default_install_dir(GameProject::UndertaleYellow);
                                     state.current_step = Step::ChooseInstallMethod;
                                 }
                                 
@@ -589,6 +605,7 @@ impl egui_software_backend::App for PatcherApp {
                                 }
                                 if card_resp.clicked() {
                                     state.selected_project = Some(GameProject::RedAndYellow);
+                                    state.install_dir = get_default_install_dir(GameProject::RedAndYellow);
                                     state.current_step = Step::ChooseInstallMethod;
                                 }
                                 
@@ -948,17 +965,26 @@ impl egui_software_backend::App for PatcherApp {
                     }
                     
                     Step::Success => {
-                        let title = if state.is_update_mode {
+                        let is_already = state.status_message.contains("déjà");
+                        let title = if is_already {
+                            "VOTRE JEU EST DÉJÀ À JOUR"
+                        } else if state.is_update_mode {
                             "TRADUCTION MISE À JOUR AVEC SUCCÈS"
                         } else {
                             "TRADUCTION INSTALLÉE AVEC SUCCÈS"
+                        };
+                        
+                        let subtitle = if is_already {
+                            "Votre jeu possède déjà la dernière version de la traduction française."
+                        } else {
+                            "Votre jeu est prêt et entièrement configuré en français !"
                         };
                         
                         ui.vertical_centered(|ui| {
                             ui.heading(egui::RichText::new(title).color(egui::Color32::from_rgb(255, 204, 0)).strong().size(17.0));
                             ui.add_space(10.0);
                             
-                            ui.label("Votre jeu est prêt et entièrement configuré en français !");
+                            ui.label(subtitle);
                             ui.add_space(14.0);
 
                             if let Some(game_dir) = &state.final_game_dir {
@@ -1829,7 +1855,7 @@ fn try_create_shortcut(project: GameProject, game_dir: &Path, is_unx: bool) -> R
         };
         
         let icon_path = game_dir.join("coeur_icon.png");
-        let _ = fs::write(&icon_path, APP_ICON_BYTES);
+        let _ = fs::write(&icon_path, APP_ICON_PNG_BYTES);
         
         let shortcut_content = format!(
             "[Desktop Entry]\n\
@@ -1971,8 +1997,8 @@ fn ensure_linux_desktop_entry() {
         let _ = fs::create_dir_all(&pixmaps_dir);
         
         let icon_path = icon_dir.join("zenith-patcher.png");
-        let _ = fs::write(&icon_path, APP_ICON_BYTES);
-        let _ = fs::write(pixmaps_dir.join("zenith-patcher.png"), APP_ICON_BYTES);
+        let _ = fs::write(&icon_path, APP_ICON_PNG_BYTES);
+        let _ = fs::write(pixmaps_dir.join("zenith-patcher.png"), APP_ICON_PNG_BYTES);
         
         if let Ok(exe_path) = std::env::current_exe() {
             let desktop_path = app_dir.join("zenith-patcher.desktop");
@@ -2038,6 +2064,31 @@ fn main() {
 
     if let Some(icon) = icon {
         settings = settings.icon(Some(icon));
+    }
+
+    // Activation asynchrone du Dark Mode pour la barre de titre Windows (DWM Win32)
+    #[cfg(windows)]
+    {
+        std::thread::spawn(|| {
+            #[link(name = "dwmapi")]
+            extern "system" {
+                fn DwmSetWindowAttribute(hwnd: isize, dwAttribute: u32, pvAttribute: *const std::ffi::c_void, cbAttribute: u32) -> i32;
+            }
+            #[link(name = "user32")]
+            extern "system" {
+                fn FindWindowW(lpClassName: *const u16, lpWindowName: *const u16) -> isize;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(200));
+            let title: Vec<u16> = "Zenith Patcher\0".encode_utf16().collect();
+            let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
+            if hwnd != 0 {
+                let dark: i32 = 1;
+                unsafe {
+                    DwmSetWindowAttribute(hwnd, 20, &dark as *const _ as _, 4);
+                    DwmSetWindowAttribute(hwnd, 19, &dark as *const _ as _, 4);
+                }
+            }
+        });
     }
 
     if let Err(e) = egui_software_backend::run_app_with_software_backend(settings, PatcherApp::new) {
