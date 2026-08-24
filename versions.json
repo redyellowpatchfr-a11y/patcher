@@ -13,15 +13,15 @@
       }
     },
     "ry-fr": {
-      "version": "2.2.0",
+      "version": "2.1.3a",
       "patch_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-v2.2.0.xdelta",
       "patch_vanilla_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-vanilla-v2.2.0.xdelta",
       "patch_linux_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-fr-linux-v2.1.4.xdelta",
       "repack_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/Undertale.Red.and.Yellow.v2.1.4.FR.Windows.zip",
       "repack_linux_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/Undertale.Red.and.Yellow.v2.1.4.FR.Linux.zip",
       "assets_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-assets.zip",
-      "date": "2026-08-24",
-      "changelog": "Patch officiel Undertale Red & Yellow v2.1.4 FR (Windows & Linux). Fusion complète et sans bug.",
+      "date": "2026-08-25",
+      "changelog": "Patch officiel Undertale Red & Yellow v2.1.3a FR (Windows) / v2.1.4 FR (Linux). Polices et alignements français intégrés.",
       "patch": {
         "filename": "ry-fr-v2.2.0.xdelta",
         "sha256": "479e4fe79ce07d7e0020703e3f4126a386faedc0927c41aebbb107d7c5403f78",

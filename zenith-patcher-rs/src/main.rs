@@ -666,7 +666,7 @@ impl egui_software_backend::App for PatcherApp {
                                 ui.painter().text(
                                     egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 40.0),
                                     egui::Align2::CENTER_CENTER,
-                                    "Version FR v2.2.0",
+                                    "Version FR v2.1.3a",
                                     sub_font,
                                     egui::Color32::from_rgb(160, 155, 175),
                                 );
@@ -677,7 +677,7 @@ impl egui_software_backend::App for PatcherApp {
                     Step::ChooseInstallMethod => {
                         let (project_name, version_str, game_tex) = match state.selected_project {
                             Some(GameProject::UndertaleYellow) => ("Undertale Yellow", "Traduction FR v0.5.0", self.tex_uty.as_ref()),
-                            Some(GameProject::RedAndYellow) => ("Undertale Red & Yellow", "Traduction FR v2.2.0", self.tex_ry.as_ref()),
+                            Some(GameProject::RedAndYellow) => ("Undertale Red & Yellow", "Traduction FR v2.1.3a", self.tex_ry.as_ref()),
                             None => ("", "", None),
                         };
 
