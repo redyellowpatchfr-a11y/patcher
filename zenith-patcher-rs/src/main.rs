@@ -1925,6 +1925,31 @@ fn ensure_linux_desktop_entry() {
 #[cfg(not(target_os = "linux"))]
 fn ensure_linux_desktop_entry() {}
 
+fn run_app(renderer: eframe::Renderer, icon: Option<egui::IconData>) -> eframe::Result<()> {
+    let options = eframe::NativeOptions {
+        viewport: egui::ViewportBuilder::default()
+            .with_inner_size([760.0, 500.0])
+            .with_resizable(true)
+            .with_maximize_button(true)
+            .with_decorations(true)
+            .with_icon(icon.unwrap_or_default())
+            .with_title("Zenith Patcher"),
+        renderer,
+        wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
+            supported_backends: eframe::wgpu::Backends::all(),
+            power_preference: eframe::wgpu::PowerPreference::None,
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    
+    eframe::run_native(
+        "zenith-patcher",
+        options,
+        Box::new(|cc| Ok(Box::new(PatcherApp::new(cc)))),
+    )
+}
+
 fn main() -> eframe::Result<()> {
     #[cfg(target_os = "windows")]
     {
@@ -1958,33 +1983,17 @@ fn main() -> eframe::Result<()> {
     // Icône de l'application (coeur rouge d'Undertale) redimensionnée carré 64x64
     let icon = load_app_icon(APP_ICON_BYTES);
 
-    let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default()
-            .with_inner_size([760.0, 500.0])
-            .with_resizable(true)
-            .with_maximize_button(true)
-            .with_decorations(true)
-            .with_icon(icon.unwrap_or_default())
-            .with_title("Zenith Patcher"),
-        #[cfg(target_os = "windows")]
-        renderer: eframe::Renderer::Wgpu,
-        #[cfg(not(target_os = "windows"))]
-        renderer: eframe::Renderer::Glow,
-        #[cfg(target_os = "windows")]
-        wgpu_options: eframe::egui_wgpu::WgpuConfiguration {
-            supported_backends: eframe::wgpu::Backends::all(),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-    
-    let result = eframe::run_native(
-        "zenith-patcher",
-        options,
-        Box::new(|cc| Ok(Box::new(PatcherApp::new(cc)))),
-    );
+    // 1er essai : WGPU avec support adaptateur logiciel (WARP/DirectX/Vulkan)
+    let result = run_app(eframe::Renderer::Wgpu, icon.clone());
 
-    if let Err(ref e) = result {
+    // 2ème essai : Repli automatique sur Glow (OpenGL) si WGPU n'a pas trouvé d'adaptateur
+    let final_result = if result.is_err() {
+        run_app(eframe::Renderer::Glow, icon)
+    } else {
+        result
+    };
+
+    if let Err(ref e) = final_result {
         if let Ok(mut exe_dir) = std::env::current_exe() {
             exe_dir.pop();
             let _ = std::fs::write(exe_dir.join("zenith_patcher_error.txt"), format!("EFRAME ERROR: {:?}", e));
@@ -1993,7 +2002,7 @@ fn main() -> eframe::Result<()> {
         }
     }
 
-    result
+    final_result
 }
 
 
