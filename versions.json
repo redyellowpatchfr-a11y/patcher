@@ -21,16 +21,16 @@
       "repack_linux_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/Undertale.Red.and.Yellow.v2.1.4.FR.Linux.zip",
       "assets_url": "https://github.com/redyellowpatchfr-a11y/patcher/releases/download/ry-fr-v2.2.0/ry-assets.zip",
       "date": "2026-09-06",
-      "changelog": "Patch officiel Undertale Red & Yellow v2.1.4 FR (Windows & Linux). Fusion non-destructive intégrale, polices françaises 300 glyphes intégrées.",
+      "changelog": "Patch officiel Undertale Red & Yellow v2.1.4 FR (Windows & Linux). Fusion non-destructive intégrale, polices françaises 300 glyphes, HUD PV/PO et sprites français de combat intégrés.",
       "patch": {
         "filename": "ry-fr-v2.2.0.xdelta",
-        "sha256": "5bdda0a5d823819ba099c6fb72638c54ea59b50de8332ea49b21c0f014c22857",
-        "size": 963669
+        "sha256": "9fc8f8aba5494791071d34505af00e5e27dc513a0fa0afcf1e9cdcf07890d889",
+        "size": 15167649
       },
       "patch_linux": {
         "filename": "ry-fr-linux-v2.1.4.xdelta",
-        "sha256": "ed7231284547f598d60037a22f7b6bbc7934ccb601f933a5aed550e440de4071",
-        "size": 349149
+        "sha256": "107b16fbed9e0876454cf94e0b2b6f472c98dea1d097cd073e3bea84dcd2d5ae",
+        "size": 15648312
       }
     }
   }

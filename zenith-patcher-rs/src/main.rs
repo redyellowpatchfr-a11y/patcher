@@ -437,6 +437,65 @@ impl egui_software_backend::App for PatcherApp {
             ctx.request_repaint_after(Duration::from_millis(50));
         }
 
+        // --- 0. Barre de Titre Personnalisée (Undertale Custom Titlebar) ---
+        let top_bar_frame = egui::Frame::NONE
+            .fill(egui::Color32::from_rgb(8, 6, 12))
+            .stroke(egui::Stroke::new(1.0_f32, egui::Color32::from_rgb(45, 32, 60)))
+            .inner_margin(egui::Margin::symmetric(14, 6));
+
+        egui::TopBottomPanel::top("top_titlebar")
+            .frame(top_bar_frame)
+            .show_inside(ui, |ui| {
+                ui.horizontal(|ui| {
+                    if let Some(tex_heart) = &self.tex_heart {
+                        ui.image((tex_heart.id(), egui::vec2(16.0, 16.0)));
+                        ui.add_space(6.0);
+                    }
+                    ui.label(
+                        egui::RichText::new("UNDERTALE FR PATCHER")
+                            .size(13.0)
+                            .strong()
+                            .color(egui::Color32::from_rgb(255, 204, 0))
+                    );
+
+                    // Zone de drag de la fenêtre
+                    let avail_w = (ui.available_width() - 80.0).max(10.0);
+                    let (_drag_rect, drag_resp) = ui.allocate_exact_size(egui::vec2(avail_w, 24.0), egui::Sense::drag());
+                    if drag_resp.dragged() {
+                        ui.ctx().send_viewport_cmd(egui::ViewportCommand::StartDrag);
+                    }
+
+                    // Boutons Réduire et Fermer
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        let close_btn = ui.add_sized(
+                            [30.0, 22.0],
+                            egui::Button::new(egui::RichText::new("✕").size(13.0).color(egui::Color32::WHITE))
+                                .fill(egui::Color32::from_rgb(32, 20, 40))
+                        );
+                        if close_btn.hovered() {
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                        }
+                        if close_btn.clicked() {
+                            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
+                        }
+
+                        ui.add_space(4.0);
+
+                        let min_btn = ui.add_sized(
+                            [30.0, 22.0],
+                            egui::Button::new(egui::RichText::new("—").size(12.0).color(egui::Color32::WHITE))
+                                .fill(egui::Color32::from_rgb(32, 20, 40))
+                        );
+                        if min_btn.hovered() {
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
+                        }
+                        if min_btn.clicked() {
+                            ui.ctx().send_viewport_cmd(egui::ViewportCommand::Minimized(true));
+                        }
+                    });
+                });
+            });
+
         // --- 1. Barre Inférieure (Footer) ---
         let bottom_bar_frame = egui::Frame::NONE
             .fill(egui::Color32::from_rgb(12, 8, 18))
@@ -1509,6 +1568,8 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
                 file_hash == "44db584f7d0f85d917f854f0749d513fd54b24108f17037a05d5a3064578d169" // Win & Linux FR v2.1.4
                 || file_hash == "22378c9a9419995b2e46b34589268ca4cd52e4bcbbf2698cef13579910bd5a40" // Win FR v2.2.0
                 || file_hash == "52215f9dd2b4601aada2df114728237277c596cd7b6c2d3b981799e8cb868ff4" // Linux FR v2.2.0
+                || file_hash == "7aa4af0922535b547a7ca39a7c75de78623b866a3fd67b65830159cc94d686ba" // Win FR v2.1.4 new
+                || file_hash == "d1172bce87593c08707538cf25430df717d6cbac85f48589815cc0ce8d4fe12c" // Linux FR v2.1.4 new
             }
         };
 
@@ -1941,9 +2002,10 @@ fn launch_game(project: GameProject, game_dir: &Path, is_unx: bool) {
                         .spawn()
                 }
             } else {
-                // Sur Linux : priorité aux fichiers natifs (runner / run.sh)
+                // Sur Linux : support natif, steam-runtime et Wine
                 let runner = game_dir.join("runner");
                 let run_sh = game_dir.join("run.sh");
+                let exe = game_dir.join("UNDERTALE.exe");
                 
                 #[cfg(unix)]
                 {
@@ -1963,24 +2025,56 @@ fn launch_game(project: GameProject, game_dir: &Path, is_unx: bool) {
                 let is_steam_folder = game_dir.to_string_lossy().contains("steamapps") || game_dir.to_string_lossy().contains("Steam");
                 if is_steam_folder && is_unx && Command::new("xdg-open").arg("steam://run/391540").spawn().is_ok() {
                     Ok(std::process::Command::new("true").spawn().unwrap())
-                } else if run_sh.exists() {
-                    Command::new("sh")
-                        .arg(&run_sh)
-                        .current_dir(game_dir)
-                        .spawn()
-                } else if runner.exists() {
-                    Command::new(&runner)
-                        .current_dir(game_dir)
-                        .spawn()
-                } else if game_dir.join("UNDERTALE.exe").exists() {
-                    Command::new("wine")
-                        .arg(game_dir.join("UNDERTALE.exe"))
-                        .current_dir(game_dir)
-                        .spawn()
-                } else if is_unx && Command::new("xdg-open").arg("steam://run/391540").spawn().is_ok() {
-                    Ok(std::process::Command::new("true").spawn().unwrap())
                 } else {
-                    Ok(std::process::Command::new("true").spawn().unwrap())
+                    let home = std::env::var("HOME").unwrap_or_default();
+                    let steam_runtime1 = PathBuf::from(&home).join(".steam/debian-installation/ubuntu12_32/steam-runtime/run.sh");
+                    let steam_runtime2 = PathBuf::from(&home).join(".local/share/Steam/ubuntu12_32/steam-runtime/run.sh");
+                    let runtime_path = if steam_runtime1.exists() {
+                        Some(steam_runtime1)
+                    } else if steam_runtime2.exists() {
+                        Some(steam_runtime2)
+                    } else {
+                        None
+                    };
+
+                    if let Some(runtime) = runtime_path {
+                        if run_sh.exists() {
+                            Command::new(&runtime)
+                                .arg(&run_sh)
+                                .current_dir(game_dir)
+                                .spawn()
+                        } else if runner.exists() {
+                            Command::new(&runtime)
+                                .arg(&runner)
+                                .current_dir(game_dir)
+                                .spawn()
+                        } else if exe.exists() {
+                            Command::new("wine")
+                                .arg(&exe)
+                                .current_dir(game_dir)
+                                .spawn()
+                        } else {
+                            Command::new("xdg-open").arg("steam://run/391540").spawn()
+                        }
+                    } else if exe.exists() && Command::new("wine").arg("--version").output().is_ok() {
+                        Command::new("wine")
+                            .arg(&exe)
+                            .current_dir(game_dir)
+                            .spawn()
+                    } else if run_sh.exists() {
+                        Command::new("sh")
+                            .arg(&run_sh)
+                            .current_dir(game_dir)
+                            .spawn()
+                    } else if runner.exists() {
+                        Command::new(&runner)
+                            .current_dir(game_dir)
+                            .spawn()
+                    } else if is_unx && Command::new("xdg-open").arg("steam://run/391540").spawn().is_ok() {
+                        Ok(std::process::Command::new("true").spawn().unwrap())
+                    } else {
+                        Ok(std::process::Command::new("true").spawn().unwrap())
+                    }
                 }
             }
         }
@@ -2023,34 +2117,62 @@ fn draw_custom_progress_bar(ui: &mut egui::Ui, progress: f32) {
 fn ensure_linux_desktop_entry() {
     if let Ok(home) = std::env::var("HOME") {
         let app_dir = PathBuf::from(&home).join(".local/share/applications");
-        let icon_dir = PathBuf::from(&home).join(".local/share/icons/hicolor/128x128/apps");
+        let icon_dir_128 = PathBuf::from(&home).join(".local/share/icons/hicolor/128x128/apps");
+        let icon_dir_256 = PathBuf::from(&home).join(".local/share/icons/hicolor/256x256/apps");
+        let icon_dir_scalable = PathBuf::from(&home).join(".local/share/icons/hicolor/scalable/apps");
         let pixmaps_dir = PathBuf::from(&home).join(".local/share/pixmaps");
+        let user_icons = PathBuf::from(&home).join(".icons");
         
         let _ = fs::create_dir_all(&app_dir);
-        let _ = fs::create_dir_all(&icon_dir);
+        let _ = fs::create_dir_all(&icon_dir_128);
+        let _ = fs::create_dir_all(&icon_dir_256);
+        let _ = fs::create_dir_all(&icon_dir_scalable);
         let _ = fs::create_dir_all(&pixmaps_dir);
+        let _ = fs::create_dir_all(&user_icons);
         
-        let icon_path = icon_dir.join("undertale-fr-patcher.png");
+        let icon_path = icon_dir_128.join("undertale-fr-patcher.png");
         let _ = fs::write(&icon_path, APP_ICON_PNG_BYTES);
+        let _ = fs::write(icon_dir_256.join("undertale-fr-patcher.png"), APP_ICON_PNG_BYTES);
+        let _ = fs::write(icon_dir_scalable.join("undertale-fr-patcher.png"), APP_ICON_PNG_BYTES);
         let _ = fs::write(pixmaps_dir.join("undertale-fr-patcher.png"), APP_ICON_PNG_BYTES);
+        let _ = fs::write(user_icons.join("undertale-fr-patcher.png"), APP_ICON_PNG_BYTES);
         
         if let Ok(exe_path) = std::env::current_exe() {
-            let desktop_path = app_dir.join("undertale-fr-patcher.desktop");
             let desktop_content = format!(
                 "[Desktop Entry]\n\
+                Version=1.0\n\
                 Type=Application\n\
                 Name=Undertale FR Patcher\n\
                 GenericName=Patcher de Traduction FR\n\
                 Comment=Patcher de traduction pour Undertale, Undertale Yellow et Red & Yellow\n\
                 Exec=\"{}\"\n\
-                Icon={}\n\
+                Icon=undertale-fr-patcher\n\
                 Terminal=false\n\
                 StartupWMClass=undertale-fr-patcher\n\
                 Categories=Utility;Game;\n",
-                exe_path.to_string_lossy(),
-                icon_path.to_string_lossy()
+                exe_path.to_string_lossy()
             );
-            let _ = fs::write(desktop_path, desktop_content);
+            let _ = fs::write(app_dir.join("undertale-fr-patcher.desktop"), &desktop_content);
+            let _ = fs::write(app_dir.join("Undertale-FR-Patcher.desktop"), &desktop_content);
+
+            for desktop_folder in &["Bureau", "Desktop"] {
+                let desk = PathBuf::from(&home).join(desktop_folder);
+                if desk.exists() {
+                    let shortcut = desk.join("undertale-fr-patcher.desktop");
+                    let _ = fs::write(&shortcut, &desktop_content);
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        if let Ok(m) = fs::metadata(&shortcut) {
+                            let mut p = m.permissions();
+                            p.set_mode(0o755);
+                            let _ = fs::set_permissions(&shortcut, p);
+                        }
+                    }
+                }
+            }
+
+            let _ = Command::new("update-desktop-database").arg(&app_dir).spawn();
         }
     }
 }
@@ -2091,9 +2213,10 @@ fn main() {
     // Configuration du backend logiciel (rendu CPU pur, aucun GPU requis)
     let icon = load_app_icon_data(APP_ICON_PNG_BYTES);
     let mut settings = SoftwareBackendAppConfiguration::new()
-        .inner_size(Some(egui::vec2(940.0, 590.0)))
-        .min_inner_size(Some(egui::vec2(940.0, 590.0)))
-        .max_inner_size(Some(egui::vec2(940.0, 590.0)))
+        .inner_size(Some(egui::vec2(940.0, 620.0)))
+        .min_inner_size(Some(egui::vec2(940.0, 620.0)))
+        .max_inner_size(Some(egui::vec2(940.0, 620.0)))
+        .decorations(Some(false))
         .title(Some("Undertale FR Patcher".to_string()))
         .resizable(Some(false));
 
