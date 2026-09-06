@@ -1499,7 +1499,8 @@ fn start_patching_process(state_mutex: Arc<Mutex<AppState>>) {
         let is_already_latest = match project {
             GameProject::UndertaleYellow => file_hash == "505ca0dbbb7743c833cebdc84f2892890ce84c5da6115c7d30707fe5f05dd873",
             GameProject::RedAndYellow => {
-                file_hash == "22378c9a9419995b2e46b34589268ca4cd52e4bcbbf2698cef13579910bd5a40" // Win FR v2.2.0
+                file_hash == "44db584f7d0f85d917f854f0749d513fd54b24108f17037a05d5a3064578d169" // Win & Linux FR v2.1.4
+                || file_hash == "22378c9a9419995b2e46b34589268ca4cd52e4bcbbf2698cef13579910bd5a40" // Win FR v2.2.0
                 || file_hash == "52215f9dd2b4601aada2df114728237277c596cd7b6c2d3b981799e8cb868ff4" // Linux FR v2.2.0
             }
         };

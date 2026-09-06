@@ -8,3 +8,6 @@ patches/*.xdelta
 .DS_Store
 Thumbs.db
 
+*.exe
+*.unx
+*.win
