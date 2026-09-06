@@ -447,7 +447,7 @@ impl egui_software_backend::App for PatcherApp {
             .frame(bottom_bar_frame)
             .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Zénith Patcher v1.0.0").size(12.0).color(egui::Color32::from_rgb(140, 135, 155)));
+                    ui.label(egui::RichText::new("Undertale FR Patcher v1.0.0").size(12.0).color(egui::Color32::from_rgb(140, 135, 155)));
                     
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         let link_color = egui::Color32::from_rgb(180, 170, 205);
@@ -529,8 +529,8 @@ impl egui_software_backend::App for PatcherApp {
                         ui.add_space(8.0);
                     }
                     ui.vertical(|ui| {
-                        ui.heading(egui::RichText::new("ZENITH PATCHER").size(20.0).strong().color(egui::Color32::WHITE));
-                        ui.label(egui::RichText::new("Patch de traduction française • Undertale Yellow & Red and Yellow").size(11.0).color(egui::Color32::from_rgb(160, 150, 180)));
+                        ui.heading(egui::RichText::new("UNDERTALE FR PATCHER").size(20.0).strong().color(egui::Color32::WHITE));
+                        ui.label(egui::RichText::new("Patch de traduction française • Undertale, Yellow & Red and Yellow").size(11.0).color(egui::Color32::from_rgb(160, 150, 180)));
                     });
                     
                     let available_space = ui.available_width();
@@ -551,11 +551,14 @@ impl egui_software_backend::App for PatcherApp {
                         let avail_w = ui.available_width();
                         let avail_h = ui.available_height();
                         
-                        let card_w = (avail_w * 0.36).clamp(210.0, 310.0);
-                        let card_h = (card_w * 1.35).min(avail_h - 90.0).max(270.0);
-                        let total_w = card_w * 2.0 + 36.0;
+                        let card_w = 260.0;
+                        let img_padding = 12.0;
+                        let img_w = card_w - (img_padding * 2.0);
+                        let img_h = 280.0;
+                        let card_h = img_padding + img_h + 56.0;
+                        let total_w = card_w * 2.0 + 44.0;
                         let margin_x = ((avail_w - total_w) / 2.0).max(0.0);
-                        let top_margin = ((avail_h - (card_h + 50.0)) / 2.0).clamp(10.0, 45.0);
+                        let top_margin = ((avail_h - (card_h + 45.0)) / 2.0).clamp(10.0, 40.0);
 
                         ui.add_space(top_margin);
                         ui.vertical_centered(|ui| {
@@ -583,10 +586,6 @@ impl egui_software_backend::App for PatcherApp {
                                 ui.painter().rect_filled(card_rect, 6.0, card_bg);
                                 ui.painter().rect_stroke(card_rect, 6.0, egui::Stroke::new(if is_h { 1.5_f32 } else { 1.0_f32 }, card_stroke), egui::StrokeKind::Outside);
                                 
-                                let img_padding = 12.0;
-                                let img_w = card_w - (img_padding * 2.0);
-                                let img_h = img_w * 1.18;
-                                
                                 if let Some(tex) = &self.tex_uty {
                                     let img_rect = egui::Rect::from_min_size(
                                         egui::pos2(card_rect.min.x + img_padding, card_rect.min.y + img_padding),
@@ -603,7 +602,7 @@ impl egui_software_backend::App for PatcherApp {
                                 let font_id = egui::FontId::new(14.0, egui::FontFamily::Proportional);
                                 let text_color = if is_h { egui::Color32::from_rgb(255, 204, 0) } else { egui::Color32::WHITE };
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 22.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_padding + img_h + 16.0),
                                     egui::Align2::CENTER_CENTER,
                                     "Undertale Yellow",
                                     font_id,
@@ -612,14 +611,14 @@ impl egui_software_backend::App for PatcherApp {
                                 
                                 let sub_font = egui::FontId::new(11.0, egui::FontFamily::Proportional);
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 40.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_padding + img_h + 34.0),
                                     egui::Align2::CENTER_CENTER,
                                     "Version FR v0.5.0",
                                     sub_font,
                                     egui::Color32::from_rgb(160, 155, 175),
                                 );
 
-                                ui.add_space(36.0);
+                                ui.add_space(44.0);
 
                                 // Card 2 : Red & Yellow
                                 let (card_rect, card_resp) = ui.allocate_exact_size(egui::vec2(card_w, card_h), egui::Sense::click());
@@ -655,7 +654,7 @@ impl egui_software_backend::App for PatcherApp {
                                 let font_id = egui::FontId::new(14.0, egui::FontFamily::Proportional);
                                 let text_color = if is_h { egui::Color32::from_rgb(255, 70, 70) } else { egui::Color32::WHITE };
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 22.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_padding + img_h + 16.0),
                                     egui::Align2::CENTER_CENTER,
                                     "Red & Yellow",
                                     font_id,
@@ -664,9 +663,9 @@ impl egui_software_backend::App for PatcherApp {
                                 
                                 let sub_font = egui::FontId::new(11.0, egui::FontFamily::Proportional);
                                 ui.painter().text(
-                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_h + 40.0),
+                                    egui::pos2(card_rect.center().x, card_rect.min.y + img_padding + img_h + 34.0),
                                     egui::Align2::CENTER_CENTER,
-                                    "Version FR v2.1.3a",
+                                    "Version FR v2.1.4",
                                     sub_font,
                                     egui::Color32::from_rgb(160, 155, 175),
                                 );
@@ -1237,7 +1236,7 @@ fn find_local_repack(project: GameProject, manual_repack: Option<PathBuf>) -> Op
 // Récupère l'URL de téléchargement du repack depuis le versions.json GitHub
 fn get_github_repack_url(project: GameProject) -> Result<String, String> {
     if let Ok(response) = minreq::get(VERSIONS_URL)
-        .with_header("User-Agent", "zenith-patcher/1.0")
+        .with_header("User-Agent", "undertale-fr-patcher/1.0")
         .with_timeout(15)
         .send()
     {
@@ -1250,10 +1249,18 @@ fn get_github_repack_url(project: GameProject) -> Result<String, String> {
 
                 if let Some(pos) = body.find(key) {
                     let after_key = &body[pos..];
-                    let field = if cfg!(windows) && after_key.contains("\"repack_windows_url\":") {
-                        "\"repack_windows_url\":"
+                    let field = if cfg!(windows) {
+                        if after_key.contains("\"repack_windows_url\":") {
+                            "\"repack_windows_url\":"
+                        } else {
+                            "\"repack_url\":"
+                        }
                     } else {
-                        "\"repack_url\":"
+                        if after_key.contains("\"repack_linux_url\":") {
+                            "\"repack_linux_url\":"
+                        } else {
+                            "\"repack_url\":"
+                        }
                     };
 
                     if let Some(rpos) = after_key.find(field) {
@@ -2020,22 +2027,22 @@ fn ensure_linux_desktop_entry() {
         let _ = fs::create_dir_all(&icon_dir);
         let _ = fs::create_dir_all(&pixmaps_dir);
         
-        let icon_path = icon_dir.join("zenith-patcher.png");
+        let icon_path = icon_dir.join("undertale-fr-patcher.png");
         let _ = fs::write(&icon_path, APP_ICON_PNG_BYTES);
-        let _ = fs::write(pixmaps_dir.join("zenith-patcher.png"), APP_ICON_PNG_BYTES);
+        let _ = fs::write(pixmaps_dir.join("undertale-fr-patcher.png"), APP_ICON_PNG_BYTES);
         
         if let Ok(exe_path) = std::env::current_exe() {
-            let desktop_path = app_dir.join("zenith-patcher.desktop");
+            let desktop_path = app_dir.join("undertale-fr-patcher.desktop");
             let desktop_content = format!(
                 "[Desktop Entry]\n\
                 Type=Application\n\
-                Name=Zenith Patcher\n\
+                Name=Undertale FR Patcher\n\
                 GenericName=Patcher de Traduction FR\n\
-                Comment=Patcher de traduction pour Undertale Yellow et Red and Yellow\n\
+                Comment=Patcher de traduction pour Undertale, Undertale Yellow et Red & Yellow\n\
                 Exec=\"{}\"\n\
                 Icon={}\n\
                 Terminal=false\n\
-                StartupWMClass=zenith-patcher\n\
+                StartupWMClass=undertale-fr-patcher\n\
                 Categories=Utility;Game;\n",
                 exe_path.to_string_lossy(),
                 icon_path.to_string_lossy()
@@ -2068,9 +2075,9 @@ fn main() {
             let error_msg = format!("PANIC: {} {}\n", msg, location);
             if let Ok(mut exe_dir) = std::env::current_exe() {
                 exe_dir.pop();
-                let _ = std::fs::write(exe_dir.join("zenith_patcher_panic.txt"), error_msg);
+                let _ = std::fs::write(exe_dir.join("undertale_patcher_panic.txt"), error_msg);
             } else {
-                let _ = std::fs::write("zenith_patcher_panic.txt", error_msg);
+                let _ = std::fs::write("undertale_patcher_panic.txt", error_msg);
             }
         }));
     }
@@ -2081,10 +2088,11 @@ fn main() {
     // Configuration du backend logiciel (rendu CPU pur, aucun GPU requis)
     let icon = load_app_icon_data(APP_ICON_PNG_BYTES);
     let mut settings = SoftwareBackendAppConfiguration::new()
-        .inner_size(Some(egui::vec2(860.0, 550.0)))
-        .min_inner_size(Some(egui::vec2(780.0, 500.0)))
-        .title(Some("Zenith Patcher".to_string()))
-        .resizable(Some(true));
+        .inner_size(Some(egui::vec2(940.0, 590.0)))
+        .min_inner_size(Some(egui::vec2(940.0, 590.0)))
+        .max_inner_size(Some(egui::vec2(940.0, 590.0)))
+        .title(Some("Undertale FR Patcher".to_string()))
+        .resizable(Some(false));
 
     if let Some(icon) = icon {
         settings = settings.icon(Some(icon));
@@ -2094,9 +2102,9 @@ fn main() {
         let error_msg = format!("RENDER ERROR: {:?}\n", e);
         if let Ok(mut exe_dir) = std::env::current_exe() {
             exe_dir.pop();
-            let _ = std::fs::write(exe_dir.join("zenith_patcher_error.txt"), &error_msg);
+            let _ = std::fs::write(exe_dir.join("undertale_patcher_error.txt"), &error_msg);
         } else {
-            let _ = std::fs::write("zenith_patcher_error.txt", &error_msg);
+            let _ = std::fs::write("undertale_patcher_error.txt", &error_msg);
         }
         eprintln!("{}", error_msg);
     }

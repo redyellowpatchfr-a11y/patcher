@@ -2753,6 +2753,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "undertale-fr-patcher"
+version = "1.0.0"
+dependencies = [
+ "egui",
+ "egui_software_backend",
+ "image",
+ "minreq",
+ "rfd",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tempfile",
+ "webbrowser",
+ "winres",
+]
+
+[[package]]
 name = "unicode-ident"
 version = "1.0.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3468,23 +3485,6 @@ dependencies = [
  "serde",
  "static_assertions",
  "zvariant",
-]
-
-[[package]]
-name = "zenith-patcher-rs"
-version = "1.0.0"
-dependencies = [
- "egui",
- "egui_software_backend",
- "image",
- "minreq",
- "rfd",
- "serde",
- "serde_json",
- "sha2",
- "tempfile",
- "webbrowser",
- "winres",
 ]
 
 [[package]]

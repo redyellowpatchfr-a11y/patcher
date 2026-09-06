@@ -24,13 +24,13 @@
       "changelog": "Patch officiel Undertale Red & Yellow v2.1.4 FR (Windows & Linux). Fusion non-destructive intégrale, polices françaises 300 glyphes intégrées.",
       "patch": {
         "filename": "ry-fr-v2.2.0.xdelta",
-        "sha256": "29280f6a4705188f63a20683260785ea70ea53a2046e803a0cd5ef75fc8bcfe7",
-        "size": 2210446
+        "sha256": "5bdda0a5d823819ba099c6fb72638c54ea59b50de8332ea49b21c0f014c22857",
+        "size": 963669
       },
       "patch_linux": {
         "filename": "ry-fr-linux-v2.1.4.xdelta",
-        "sha256": "8dafec727663fb1b38bcf5b95afc509c2496b762a0aa76897a5ae701ad78b43b",
-        "size": 366360
+        "sha256": "ed7231284547f598d60037a22f7b6bbc7934ccb601f933a5aed550e440de4071",
+        "size": 349149
       }
     }
   }

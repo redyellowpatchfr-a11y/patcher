@@ -1,9 +1,9 @@
 [package]
-name = "zenith-patcher-rs"
+name = "undertale-fr-patcher"
 version = "1.0.0"
 edition = "2021"
-authors = ["Zénith Team (Cronos, Anthan)"]
-description = "Patcher de traduction française pour Undertale Yellow et Red & Yellow"
+authors = ["Cronos, Anthan"]
+description = "Patcher de traduction française pour Undertale, Undertale Yellow et Red & Yellow"
 
 [dependencies]
 # GUI : rendu CPU pur via softbuffer (GDI sur Windows) -- aucun GPU requis
