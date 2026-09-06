@@ -1960,7 +1960,8 @@ fn launch_game(project: GameProject, game_dir: &Path, is_unx: bool) {
                     }
                 }
                 
-                if is_unx && Command::new("xdg-open").arg("steam://run/391540").spawn().is_ok() {
+                let is_steam_folder = game_dir.to_string_lossy().contains("steamapps") || game_dir.to_string_lossy().contains("Steam");
+                if is_steam_folder && is_unx && Command::new("xdg-open").arg("steam://run/391540").spawn().is_ok() {
                     Ok(std::process::Command::new("true").spawn().unwrap())
                 } else if run_sh.exists() {
                     Command::new("sh")
@@ -1976,6 +1977,8 @@ fn launch_game(project: GameProject, game_dir: &Path, is_unx: bool) {
                         .arg(game_dir.join("UNDERTALE.exe"))
                         .current_dir(game_dir)
                         .spawn()
+                } else if is_unx && Command::new("xdg-open").arg("steam://run/391540").spawn().is_ok() {
+                    Ok(std::process::Command::new("true").spawn().unwrap())
                 } else {
                     Ok(std::process::Command::new("true").spawn().unwrap())
                 }
