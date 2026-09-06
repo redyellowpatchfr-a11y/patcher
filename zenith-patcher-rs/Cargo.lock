@@ -698,8 +698,6 @@ dependencies = [
 [[package]]
 name = "egui_software_backend"
 version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8ca3a47168e93a5cca79b7cb830817acaf07ebc1f8756aa368a6b2d6250f6ae"
 dependencies = [
  "bytemuck",
  "constify",
@@ -2754,7 +2752,7 @@ dependencies = [
 
 [[package]]
 name = "undertale-fr-patcher"
-version = "1.0.0"
+version = "2.2.6"
 dependencies = [
  "egui",
  "egui_software_backend",

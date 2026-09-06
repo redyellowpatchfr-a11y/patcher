@@ -264,15 +264,15 @@ fn load_image_bytes(ctx: &egui::Context, name: &str, bytes: &[u8]) -> Option<egu
     }
 }
 
-// Redimensionner l'icône de l'application pour qu'elle soit carrée (64x64)
+// Redimensionner l'icône de l'application pour qu'elle soit carrée (256x256)
 fn load_app_icon_data(bytes: &[u8]) -> Option<std::sync::Arc<egui::IconData>> {
     if let Ok(img) = image::load_from_memory(bytes) {
-        let img = img.resize_exact(64, 64, image::imageops::FilterType::Nearest);
+        let img = img.resize_exact(256, 256, image::imageops::FilterType::Nearest);
         let img = img.to_rgba8();
         Some(std::sync::Arc::new(egui::IconData {
             rgba: img.into_raw(),
-            width: 64,
-            height: 64,
+            width: 256,
+            height: 256,
         }))
     } else {
         None
@@ -460,36 +460,60 @@ impl egui_software_backend::App for PatcherApp {
 
                     // Zone de drag de la fenêtre
                     let avail_w = (ui.available_width() - 80.0).max(10.0);
-                    let (_drag_rect, drag_resp) = ui.allocate_exact_size(egui::vec2(avail_w, 24.0), egui::Sense::drag());
-                    if drag_resp.dragged() {
+                    let (_drag_rect, drag_resp) = ui.allocate_exact_size(egui::vec2(avail_w, 24.0), egui::Sense::click_and_drag());
+                    if drag_resp.drag_started() || drag_resp.dragged() {
                         ui.ctx().send_viewport_cmd(egui::ViewportCommand::StartDrag);
                     }
 
                     // Boutons Réduire et Fermer
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        let close_btn = ui.add_sized(
-                            [30.0, 22.0],
-                            egui::Button::new(egui::RichText::new("✕").size(13.0).color(egui::Color32::WHITE))
-                                .fill(egui::Color32::from_rgb(32, 20, 40))
-                        );
-                        if close_btn.hovered() {
+                        // Bouton Fermer [X] avec survol rouge vif
+                        let (close_rect, close_resp) = ui.allocate_exact_size(egui::vec2(30.0, 22.0), egui::Sense::click());
+                        if close_resp.hovered() {
                             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                         }
-                        if close_btn.clicked() {
+                        let close_bg = if close_resp.is_pointer_button_down_on() {
+                            egui::Color32::from_rgb(140, 10, 10)
+                        } else if close_resp.hovered() {
+                            egui::Color32::from_rgb(200, 30, 30)
+                        } else {
+                            egui::Color32::from_rgb(32, 20, 40)
+                        };
+                        ui.painter().rect_filled(close_rect, egui::CornerRadius::same(3), close_bg);
+                        ui.painter().text(
+                            close_rect.center(),
+                            egui::Align2::CENTER_CENTER,
+                            "X",
+                            egui::FontId::monospace(13.0),
+                            egui::Color32::WHITE,
+                        );
+                        if close_resp.clicked() {
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
                         }
 
                         ui.add_space(4.0);
 
-                        let min_btn = ui.add_sized(
-                            [30.0, 22.0],
-                            egui::Button::new(egui::RichText::new("—").size(12.0).color(egui::Color32::WHITE))
-                                .fill(egui::Color32::from_rgb(32, 20, 40))
-                        );
-                        if min_btn.hovered() {
+                        // Bouton Réduire [-]
+                        let (min_rect, min_resp) = ui.allocate_exact_size(egui::vec2(30.0, 22.0), egui::Sense::click());
+                        if min_resp.hovered() {
                             ui.ctx().set_cursor_icon(egui::CursorIcon::PointingHand);
                         }
-                        if min_btn.clicked() {
+                        let min_bg = if min_resp.is_pointer_button_down_on() {
+                            egui::Color32::from_rgb(45, 30, 60)
+                        } else if min_resp.hovered() {
+                            egui::Color32::from_rgb(60, 42, 78)
+                        } else {
+                            egui::Color32::from_rgb(32, 20, 40)
+                        };
+                        ui.painter().rect_filled(min_rect, egui::CornerRadius::same(3), min_bg);
+                        ui.painter().text(
+                            min_rect.center(),
+                            egui::Align2::CENTER_CENTER,
+                            "-",
+                            egui::FontId::monospace(15.0),
+                            egui::Color32::WHITE,
+                        );
+                        if min_resp.clicked() {
                             ui.ctx().send_viewport_cmd(egui::ViewportCommand::Minimized(true));
                         }
                     });
@@ -506,7 +530,11 @@ impl egui_software_backend::App for PatcherApp {
             .frame(bottom_bar_frame)
             .show_inside(ui, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("Undertale FR Patcher v1.0.0").size(12.0).color(egui::Color32::from_rgb(140, 135, 155)));
+                    ui.label(
+                        egui::RichText::new(format!("Undertale FR Patcher v{}", env!("CARGO_PKG_VERSION")))
+                            .size(12.0)
+                            .color(egui::Color32::from_rgb(140, 135, 155))
+                    );
                     
                     ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                         let link_color = egui::Color32::from_rgb(180, 170, 205);
@@ -2213,9 +2241,9 @@ fn main() {
     // Configuration du backend logiciel (rendu CPU pur, aucun GPU requis)
     let icon = load_app_icon_data(APP_ICON_PNG_BYTES);
     let mut settings = SoftwareBackendAppConfiguration::new()
-        .inner_size(Some(egui::vec2(940.0, 620.0)))
-        .min_inner_size(Some(egui::vec2(940.0, 620.0)))
-        .max_inner_size(Some(egui::vec2(940.0, 620.0)))
+        .inner_size(Some(egui::vec2(1040.0, 680.0)))
+        .min_inner_size(Some(egui::vec2(1040.0, 680.0)))
+        .max_inner_size(Some(egui::vec2(1040.0, 680.0)))
         .decorations(Some(false))
         .title(Some("Undertale FR Patcher".to_string()))
         .resizable(Some(false));

@@ -1,6 +1,6 @@
 [package]
 name = "undertale-fr-patcher"
-version = "1.0.0"
+version = "2.2.6"
 edition = "2021"
 authors = ["Cronos, Anthan"]
 description = "Patcher de traduction française pour Undertale, Undertale Yellow et Red & Yellow"
@@ -8,7 +8,7 @@ description = "Patcher de traduction française pour Undertale, Undertale Yellow
 [dependencies]
 # GUI : rendu CPU pur via softbuffer (GDI sur Windows) -- aucun GPU requis
 egui = { version = "0.34", default-features = false, features = ["default_fonts"] }
-egui_software_backend = { version = "0.0.3", features = ["winit"] }
+egui_software_backend = { path = "./egui_software_backend", features = ["winit"] }
 
 # Réseau, sérialisation, fichiers
 minreq = { version = "2.11", features = ["https-rustls"] }
